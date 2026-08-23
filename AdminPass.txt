@@ -1,0 +1,5 @@
+Email:
+admin@university.edu
+
+Password:
+admin123
