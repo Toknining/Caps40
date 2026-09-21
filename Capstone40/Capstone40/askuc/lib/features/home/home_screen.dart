@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
+import '../announcements/announcements_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -40,44 +41,54 @@ class HomeScreen extends StatelessWidget {
                 .orderBy('createdAt', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
-              final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+              final docs = snapshot.data?.docs ?? const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
 
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Color(0xFF20262D),
-                    ),
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.announcements);
-                    },
-                  ),
-                  if (count > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEF4444),
-                          shape: BoxShape.circle,
+              return ValueListenableBuilder<Set<String>>(
+                valueListenable: AnnouncementStore.readIdsNotifier,
+                builder: (context, readIds, _) {
+                  final unreadCount = docs
+                      .map((doc) => doc.id)
+                      .where((id) => !readIds.contains(id))
+                      .length;
+
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.notifications_outlined,
+                          color: Color(0xFF20262D),
                         ),
-                        child: Center(
-                          child: Text(
-                            count > 99 ? '99+' : count.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
+                        onPressed: () {
+                          Navigator.pushNamed(context, AppRoutes.announcements);
+                        },
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFEF4444),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                unreadCount > 99 ? '99+' : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                ],
+                    ],
+                  );
+                },
               );
             },
           ),
@@ -243,26 +254,18 @@ class HomeScreen extends StatelessWidget {
 
                   TextButton(
                     onPressed: () {
-                      // The notification page
-                      // is now a bottom tab.
+                      Navigator.pushNamed(context, AppRoutes.announcements);
                     },
-
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
-
                       minimumSize: Size.zero,
-
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-
                     child: const Text(
                       'See All',
-
                       style: TextStyle(
                         color: Color(0xFF0866E8),
-
                         fontSize: 10,
-
                         fontWeight: FontWeight.w500,
                       ),
                     ),

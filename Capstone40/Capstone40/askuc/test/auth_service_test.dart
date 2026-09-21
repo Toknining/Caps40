@@ -54,6 +54,17 @@ void main() {
       expect(await AuthService.shouldAutoLogin(), isFalse);
     });
 
+    test('announcement read tracking updates reactively', () async {
+      SharedPreferences.setMockInitialValues({});
+      await AnnouncementStore.clearReadIds();
+
+      await AnnouncementStore.markRead('ann-1');
+      expect(AnnouncementStore.readIdsNotifier.value.contains('ann-1'), isTrue);
+
+      await AnnouncementStore.clearReadIds();
+      expect(AnnouncementStore.readIdsNotifier.value, isEmpty);
+    });
+
     test('announcement data is mapped correctly from Firestore', () {
       final announcement = AnnouncementMapper.fromMap({
         'title': 'Campus Update',

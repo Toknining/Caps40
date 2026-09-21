@@ -2,12 +2,27 @@ import { useEffect, useState } from 'react';
 import {
   adminSignIn,
   adminSignOut,
+  auth,
   checkForAdminAccount,
   countStudents,
   createAdminAccount,
   createAnnouncement,
+  createFaq,
+  createStudentAccount,
+  deleteAnnouncement,
+  deleteFaq,
+  deleteStudentAccount,
   getAnnouncements,
+  getCurrentAdminProfile,
+  getFaqs,
+  getStudents,
+  resetStudentPassword,
+  subscribeToAnnouncementCount,
+  subscribeToAnnouncements,
+  subscribeToFaqCount,
   updateAnnouncement,
+  updateFaq,
+  updateStudentAccount,
 } from './firebase';
 
 function App() {
@@ -22,8 +37,22 @@ function App() {
 
     return rememberedLogin || sessionLogin;
   });
+  const [adminProfile, setAdminProfile] = useState({
+    firstName: 'Admin',
+    lastName: 'User',
+    photoUrl: '',
+  });
 
   const [activePage, setActivePage] = useState('Dashboard');
+
+  const loadAdminProfile = async () => {
+    try {
+      const profile = await getCurrentAdminProfile();
+      setAdminProfile(profile);
+    } catch (error) {
+      console.error('Failed to load admin profile:', error);
+    }
+  };
 
   useEffect(() => {
     async function loadAdminStatus() {
@@ -41,7 +70,13 @@ function App() {
     loadAdminStatus();
   }, []);
 
-  const handleLogin = (remember) => {
+  useEffect(() => {
+    if (loggedIn) {
+      loadAdminProfile();
+    }
+  }, [loggedIn]);
+
+  const handleLogin = async (remember) => {
     const shouldRemember = Boolean(remember);
 
     if (shouldRemember) {
@@ -57,6 +92,7 @@ function App() {
     }
 
     setLoggedIn(true);
+    await loadAdminProfile();
   };
 
   const handleLogout = async () => {
@@ -114,6 +150,8 @@ function App() {
       activePage={activePage}
       setActivePage={setActivePage}
       onLogout={handleLogout}
+      adminProfile={adminProfile}
+      onProfileUpdated={setAdminProfile}
     />
   );
 }
@@ -362,6 +400,7 @@ function AdminLayout({
   activePage,
   setActivePage,
   onLogout,
+  adminProfile,
 }) {
   return (
     <div className="admin-layout">
@@ -370,11 +409,12 @@ function AdminLayout({
         activePage={activePage}
         setActivePage={setActivePage}
         onLogout={onLogout}
+        adminProfile={adminProfile}
       />
 
       <main className="main-area">
 
-        <Topbar activePage={activePage} />
+        <Topbar activePage={activePage} adminProfile={adminProfile} />
 
         <div className="page-content">
 
@@ -406,6 +446,7 @@ function Sidebar({
   activePage,
   setActivePage,
   onLogout,
+  adminProfile,
 }) {
   const menuItems = [
     {
@@ -480,13 +521,17 @@ function Sidebar({
         <div className="admin-profile">
 
           <div className="profile-avatar">
-            AD
+            {adminProfile.photoUrl ? (
+              <img src={adminProfile.photoUrl} alt="Admin avatar" className="profile-image" />
+            ) : (
+              `${(adminProfile.firstName || 'A').charAt(0)}${(adminProfile.lastName || 'U').charAt(0)}`.toUpperCase()
+            )}
           </div>
 
           <div className="profile-info">
 
             <strong>
-              Admin User
+              {`${adminProfile.firstName || 'Admin'} ${adminProfile.lastName || 'User'}`.trim()}
             </strong>
 
             <span>
@@ -515,7 +560,7 @@ function Sidebar({
    TOPBAR
 ============================================================ */
 
-function Topbar({ activePage }) {
+function Topbar({ activePage, adminProfile }) {
   return (
     <header className="topbar">
 
@@ -530,11 +575,15 @@ function Topbar({ activePage }) {
       <div className="topbar-admin">
 
         <div className="topbar-avatar">
-          AD
+          {adminProfile.photoUrl ? (
+            <img src={adminProfile.photoUrl} alt="Admin avatar" className="profile-image" />
+          ) : (
+            `${(adminProfile.firstName || 'A').charAt(0)}${(adminProfile.lastName || 'U').charAt(0)}`.toUpperCase()
+          )}
         </div>
 
         <div>
-          <strong>Admin User</strong>
+          <strong>{`${adminProfile.firstName || 'Admin'} ${adminProfile.lastName || 'User'}`.trim()}</strong>
           <span>Administrator</span>
         </div>
 
@@ -550,7 +599,11 @@ function Topbar({ activePage }) {
 
 function Dashboard() {
   const [studentCount, setStudentCount] = useState(0);
+  const [announcementCount, setAnnouncementCount] = useState(0);
+  const [faqCount, setFaqCount] = useState(0);
   const [loadingStudents, setLoadingStudents] = useState(true);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [loadingFaqs, setLoadingFaqs] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -578,6 +631,24 @@ function Dashboard() {
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAnnouncementCount((count) => {
+      setAnnouncementCount(count);
+      setLoadingAnnouncements(false);
+    });
+
+    return () => unsubscribe && unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToFaqCount((count) => {
+      setFaqCount(count);
+      setLoadingFaqs(false);
+    });
+
+    return () => unsubscribe && unsubscribe();
   }, []);
 
   return (
@@ -618,16 +689,16 @@ function Dashboard() {
         <StatCard
           icon="?"
           title="Campus FAQs"
-          value="120"
-          change="+5%"
+          value={loadingFaqs ? 'Loading...' : String(faqCount)}
+          change="Live"
           description="Knowledge base entries"
         />
 
         <StatCard
           icon="⚑"
           title="Announcements"
-          value="24"
-          change="+10%"
+          value={loadingAnnouncements ? 'Loading...' : String(announcementCount)}
+          change="Live"
           description="Published announcements"
         />
 
@@ -928,13 +999,189 @@ function MostSearchedLocations() {
 ============================================================ */
 
 function ContentPage() {
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [faqs, setFaqs] = useState([]);
+  const [loadingFaqs, setLoadingFaqs] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingFaqId, setEditingFaqId] = useState(null);
+
+  async function loadFaqs() {
+    try {
+      const data = await getFaqs();
+      setFaqs(data);
+    } catch (error) {
+      console.error('Failed to load FAQs:', error);
+      setFaqs([]);
+    } finally {
+      setLoadingFaqs(false);
+    }
+  }
+
+  useEffect(() => {
+    loadFaqs();
+  }, []);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!question.trim() || !answer.trim()) {
+      alert('Please enter both the FAQ question and answer.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      if (editingFaqId) {
+        await updateFaq(editingFaqId, { question, answer });
+        alert('FAQ updated successfully.');
+      } else {
+        await createFaq({ question, answer });
+        alert('FAQ added successfully.');
+      }
+
+      setQuestion('');
+      setAnswer('');
+      setEditingFaqId(null);
+      await loadFaqs();
+    } catch (error) {
+      alert(error.message || 'Failed to save FAQ.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const startEditFaq = (faq) => {
+    setQuestion(faq.question || '');
+    setAnswer(faq.answer || '');
+    setEditingFaqId(faq.id);
+  };
+
+  const resetFaqForm = () => {
+    setQuestion('');
+    setAnswer('');
+    setEditingFaqId(null);
+  };
+
+  const handleDeleteFaq = async (faqId) => {
+    const confirmed = window.confirm('Delete this FAQ?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteFaq(faqId);
+      await loadFaqs();
+    } catch (error) {
+      alert(error.message || 'Failed to delete FAQ.');
+    }
+  };
+
   return (
-    <PagePlaceholder
-      icon="?"
-      title="Content Management"
-      description="Manage FAQs and the AskUC chatbot knowledge base."
-      button="Add FAQ"
-    />
+    <div className="module-page">
+      <div className="module-heading">
+        <div>
+          <h1>Content Management</h1>
+          <p>Create and manage campus FAQ entries.</p>
+        </div>
+      </div>
+
+      <div className="announcement-layout">
+        <div className="announcement-form-card">
+          <div className="announcement-card-header">
+            <div className="announcement-icon">?</div>
+            <div>
+              <h3>{editingFaqId ? 'Edit FAQ' : 'Add FAQ'}</h3>
+              <p>{editingFaqId ? 'Update the selected student FAQ.' : 'Publish a new frequently asked question for students.'}</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="announcement-form">
+            <div className="form-group">
+              <label>Question</label>
+              <input
+                type="text"
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                placeholder="Where is the registrar office?"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Answer</label>
+              <textarea
+                value={answer}
+                onChange={(event) => setAnswer(event.target.value)}
+                placeholder="The registrar office is located at the main administration building..."
+                rows="5"
+                required
+              />
+            </div>
+
+            <div className="announcement-action-row">
+              <button type="submit" className="login-button" disabled={submitting}>
+                {submitting ? 'Saving...' : editingFaqId ? 'Save Changes' : 'Add FAQ'}
+              </button>
+
+              {editingFaqId && (
+                <button type="button" className="secondary-button" onClick={resetFaqForm}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        <div className="announcement-list-card">
+          <div className="announcement-card-header">
+            <div className="announcement-icon">▤</div>
+            <div>
+              <h3>FAQ List</h3>
+              <p>Live list of all published FAQ entries.</p>
+            </div>
+          </div>
+
+          {loadingFaqs ? (
+            <p>Loading FAQs...</p>
+          ) : faqs.length === 0 ? (
+            <p>No FAQs added yet.</p>
+          ) : (
+            <div className="faq-list">
+              {faqs.map((faq) => (
+                <div className="faq-item" key={faq.id}>
+                  <div className="faq-item-header">
+                    <strong>{faq.question}</strong>
+
+                    <div className="faq-item-actions">
+                      <button
+                        type="button"
+                        className="faq-edit-button"
+                        onClick={() => startEditFaq(faq)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="faq-delete-button"
+                        onClick={() => handleDeleteFaq(faq.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  <p>{faq.answer}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -943,13 +1190,286 @@ function ContentPage() {
 ============================================================ */
 
 function UsersPage() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+
+  useEffect(() => {
+    loadStudents();
+  }, []);
+
+  async function loadStudents() {
+    try {
+      const data = await getStudents();
+      setStudents(data.filter((student) => student.role === 'student'));
+    } catch (error) {
+      console.error('Failed to load students:', error);
+      setStudents([]);
+    } finally {
+      setLoadingStudents(false);
+    }
+  }
+
+  const resetForm = () => {
+    setFirstName('');
+    setLastName('');
+    setStudentId('');
+    setEmail('');
+    setPassword('');
+    setEditingId(null);
+  };
+
+  const handleCancelEdit = () => {
+    resetForm();
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!firstName.trim() || !lastName.trim() || !studentId.trim() || !email.trim()) {
+      alert('Please fill in all student details.');
+      return;
+    }
+
+    if (!editingId && password.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (editingId && password && password.length < 6) {
+      alert('New password must be at least 6 characters long.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      if (editingId) {
+        await updateStudentAccount(editingId, {
+          firstName,
+          lastName,
+          studentId,
+          email,
+        });
+
+        if (password.trim()) {
+          await resetStudentPassword(email);
+          alert('Student updated successfully. A password reset email was sent to the student.');
+        } else {
+          alert('Student updated successfully.');
+        }
+      } else {
+        await createStudentAccount({
+          firstName,
+          lastName,
+          studentId,
+          email,
+          password,
+        });
+        alert('Student account created successfully.');
+      }
+
+      resetForm();
+      await loadStudents();
+    } catch (error) {
+      alert(error.message || 'Failed to save student account.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const startEdit = (student) => {
+    setFirstName(student.firstName || '');
+    setLastName(student.lastName || '');
+    setStudentId(student.studentId || '');
+    setEmail(student.email || '');
+    setPassword('');
+    setEditingId(student.id);
+  };
+
+  const handlePasswordReset = async (student) => {
+    if (!student.email) {
+      alert('This student does not have an email address on file.');
+      return;
+    }
+
+    try {
+      await resetStudentPassword(student.email);
+      alert('A password reset email has been sent to the student.');
+    } catch (error) {
+      alert(error.message || 'Failed to send reset email.');
+    }
+  };
+
+  const handleDelete = async (student) => {
+    const confirmed = window.confirm(`Delete student ${student.firstName} ${student.lastName}?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteStudentAccount(student.id);
+      alert('Student deleted successfully.');
+      await loadStudents();
+      if (editingId === student.id) {
+        resetForm();
+      }
+    } catch (error) {
+      alert(error.message || 'Failed to delete student.');
+    }
+  };
+
   return (
-    <PagePlaceholder
-      icon="♙"
-      title="Student Management"
-      description="View and manage student accounts."
-      button="Add Student"
-    />
+    <div className="module-page">
+      <div className="module-heading">
+        <div>
+          <h1>Student Management</h1>
+          <p>Create and review student accounts in the system.</p>
+        </div>
+      </div>
+
+      <div className="announcement-layout">
+        <div className="announcement-form-card">
+          <div className="announcement-card-header">
+            <div className="announcement-icon">♙</div>
+            <div>
+              <h3>{editingId ? 'Edit Student' : 'Add Student'}</h3>
+              <p>{editingId ? 'Update the selected student record.' : 'Create a student account and assign their login credentials.'}</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="announcement-form">
+            <div className="form-group">
+              <label>First Name</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Last Name</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Student ID</label>
+              <input
+                type="text"
+                value={studentId}
+                onChange={(event) => setStudentId(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>{editingId ? 'New Password (optional)' : 'Password'}</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder={editingId ? 'Leave blank to keep current password' : 'Create student password'}
+                required={!editingId}
+              />
+            </div>
+
+            <div className="announcement-action-row">
+              <button type="submit" className="login-button" disabled={submitting}>
+                {submitting ? 'Saving...' : editingId ? 'Update Student' : 'Add Student'}
+              </button>
+
+              {editingId && (
+                <button type="button" className="secondary-button" onClick={handleCancelEdit}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        <div className="announcement-stream-card">
+          <div className="announcement-card-header compact">
+            <div>
+              <h3>Registered Students</h3>
+              <p>Latest student records</p>
+            </div>
+          </div>
+
+          <div className="announcement-list">
+            {loadingStudents ? (
+              <div className="announcement-empty">
+                <strong>Loading students...</strong>
+              </div>
+            ) : students.length === 0 ? (
+              <div className="announcement-empty">
+                <div className="announcement-empty-icon">♙</div>
+                <strong>No students yet</strong>
+                <span>New student accounts will appear here.</span>
+              </div>
+            ) : (
+              students.map((student) => (
+                <div className="announcement-item" key={student.id}>
+                  <div className="announcement-badge">{student.studentId || 'ID'}</div>
+                  <div className="announcement-copy">
+                    <strong>{student.firstName} {student.lastName}</strong>
+                    <span>{student.email}</span>
+                  </div>
+                  <div className="announcement-action-row" style={{ marginLeft: 'auto' }}>
+                    <button
+                      type="button"
+                      className="announcement-edit-button"
+                      onClick={() => startEdit(student)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="announcement-edit-button"
+                      style={{ background: '#dbeafe', color: '#1d4ed8' }}
+                      onClick={() => handlePasswordReset(student)}
+                    >
+                      Reset Password
+                    </button>
+                    <button
+                      type="button"
+                      className="announcement-edit-button"
+                      style={{ background: '#ffe8e8', color: '#dc2626' }}
+                      onClick={() => handleDelete(student)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -965,7 +1485,11 @@ function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
-    loadAnnouncements();
+    const unsubscribe = subscribeToAnnouncements((items) => {
+      setAnnouncements(items);
+    });
+
+    return () => unsubscribe && unsubscribe();
   }, []);
 
   async function loadAnnouncements() {
@@ -1016,6 +1540,21 @@ function AnnouncementsPage() {
     setTitle(announcement.title || '');
     setMessage(announcement.message || '');
     setEditingId(announcement.id);
+  };
+
+  const handleDelete = async (announcementId) => {
+    const confirmed = window.confirm('Delete this announcement?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteAnnouncement(announcementId);
+      await loadAnnouncements();
+    } catch (error) {
+      alert(error.message || 'Failed to delete announcement.');
+    }
   };
 
   return (
@@ -1097,13 +1636,24 @@ function AnnouncementsPage() {
                     <strong>{announcement.title}</strong>
                     <span>{announcement.message}</span>
                   </div>
-                  <button
-                    type="button"
-                    className="announcement-edit-button"
-                    onClick={() => startEdit(announcement)}
-                  >
-                    Edit
-                  </button>
+
+                  <div className="announcement-item-actions">
+                    <button
+                      type="button"
+                      className="announcement-edit-button"
+                      onClick={() => startEdit(announcement)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="secondary-button small-button"
+                      onClick={() => handleDelete(announcement.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))
             )}

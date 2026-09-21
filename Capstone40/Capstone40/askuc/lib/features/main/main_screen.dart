@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../announcements/announcements_screen.dart';
+import '../chatbot/chat_screen.dart';
 import '../home/home_screen.dart';
 import '../navigation/map_screen.dart';
-import '../announcements/announcements_screen.dart';
 import '../settings/settings_screen.dart';
-import '../chatbot/chat_screen.dart';
 
 
 class MainScreen extends StatefulWidget {
@@ -293,33 +293,43 @@ class _AskUCBottomNavigation extends StatelessWidget {
                     .orderBy('createdAt', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                  final docs = snapshot.data?.docs ?? const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
 
-                  if (count == 0) {
-                    return const SizedBox.shrink();
-                  }
+                  return ValueListenableBuilder<Set<String>>(
+                    valueListenable: AnnouncementStore.readIdsNotifier,
+                    builder: (context, readIds, _) {
+                      final unreadCount = docs
+                          .map((doc) => doc.id)
+                          .where((id) => !readIds.contains(id))
+                          .length;
 
-                  return Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          count > 99 ? '99+' : count.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w700,
+                      if (unreadCount == 0) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              unreadCount > 99 ? '99+' : unreadCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   );
                 },
               ),

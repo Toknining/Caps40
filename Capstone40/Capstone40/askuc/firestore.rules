@@ -3,19 +3,30 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /students/{studentId} {
       allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == studentId;
+      allow create: if request.auth != null && (
+        request.auth.uid == studentId ||
+        get(/databases/$(database)/documents/students/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.uid != null
+      );
       allow update: if request.auth != null && (
         request.auth.uid == studentId ||
-        get(/databases/$(database)/documents/students/$(request.auth.uid)).data.role == 'admin'
+        get(/databases/$(database)/documents/students/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.uid != null
       );
-      allow delete: if request.auth != null &&
-        get(/databases/$(database)/documents/students/$(request.auth.uid)).data.role == 'admin';
+      allow delete: if request.auth != null && (
+        get(/databases/$(database)/documents/students/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.uid != null
+      );
     }
 
     match /announcements/{announcementId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null &&
-        get(/databases/$(database)/documents/students/$(request.auth.uid)).data.role == 'admin';
+      allow create, update, delete: if request.auth != null && request.auth.uid != null;
+    }
+
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && request.auth.uid != null;
     }
   }
 }

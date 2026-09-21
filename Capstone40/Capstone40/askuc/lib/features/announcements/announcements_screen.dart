@@ -1,5 +1,53 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class AnnouncementStore {
+  static const String _readIdsKey = 'read_announcement_ids';
+  static final ValueNotifier<Set<String>> readIdsNotifier =
+      ValueNotifier<Set<String>>(<String>{});
+
+  static Future<Set<String>> _loadReadIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawValue = prefs.getStringList(_readIdsKey) ?? const [];
+    final ids = rawValue.toSet();
+    readIdsNotifier.value = ids;
+    return ids;
+  }
+
+  static Future<Set<String>> getReadIds() async => _loadReadIds();
+
+  static Future<void> markRead(String announcementId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = (prefs.getStringList(_readIdsKey) ?? const []).toSet();
+    current.add(announcementId);
+    await prefs.setStringList(_readIdsKey, current.toList());
+    readIdsNotifier.value = current;
+  }
+
+  static Future<void> markAllRead(List<String> ids) async {
+    if (ids.isEmpty) {
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final current = (prefs.getStringList(_readIdsKey) ?? const []).toSet();
+    current.addAll(ids);
+    await prefs.setStringList(_readIdsKey, current.toList());
+    readIdsNotifier.value = current;
+  }
+
+  static Future<void> clearReadIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_readIdsKey, const []);
+    readIdsNotifier.value = <String>{};
+  }
+
+  static Future<int> getUnreadCount(List<String> ids) async {
+    final readIds = await getReadIds();
+    return ids.where((id) => !readIds.contains(id)).length;
+  }
+}
 
 class AnnouncementMapper {
   static Map<String, dynamic> fromMap(Map<String, dynamic> data) {
@@ -43,6 +91,7 @@ class AnnouncementsScreen extends StatefulWidget {
 
 class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   final List<Map<String, dynamic>> _notifications = [];
+  Set<String> _readAnnouncementIds = <String>{};
 
   Stream<QuerySnapshot<Map<String, dynamic>>> get _announcementsStream =>
       FirebaseFirestore.instance
@@ -50,17 +99,55 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           .orderBy('createdAt', descending: true)
           .snapshots();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadReadAnnouncementIds();
+  }
+
+  Future<void> _loadReadAnnouncementIds() async {
+    final readIds = await AnnouncementStore.getReadIds();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _readAnnouncementIds = readIds;
+    });
+  }
+
   List<Map<String, dynamic>> _mapSnapshotToNotifications(
     QuerySnapshot<Map<String, dynamic>> snapshot,
   ) {
-    return snapshot.docs.map((doc) => AnnouncementMapper.fromMap(doc.data())).toList();
+    return snapshot.docs.map((doc) {
+      final item = AnnouncementMapper.fromMap(doc.data());
+      item['id'] = doc.id;
+      item['unread'] = !_readAnnouncementIds.contains(doc.id);
+      return item;
+    }).toList();
   }
 
-  void _markAllAsRead() {
+  Future<void> _markAllAsRead() async {
+    final unreadIds = _notifications
+        .where((notification) => notification['unread'] == true)
+        .map((notification) => notification['id'].toString())
+        .toList();
+
+    if (unreadIds.isEmpty) {
+      return;
+    }
+
+    await AnnouncementStore.markAllRead(unreadIds);
+
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
       for (final notification in _notifications) {
         notification['unread'] = false;
       }
+      _readAnnouncementIds.addAll(unreadIds);
     });
   }
 
@@ -190,11 +277,12 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
                         return _notificationCard(
                           context,
+                          id: notification['id']?.toString() ?? '$index',
                           title: notification['title'],
                           message: notification['message'],
                           time: notification['time'],
                           icon: notification['icon'],
-                          unread: notification['unread'],
+                          unread: notification['unread'] ?? false,
                         );
                       },
                     );
@@ -264,6 +352,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
   Widget _notificationCard(
     BuildContext context, {
+    required String id,
     required String title,
     required String message,
     required String time,
@@ -272,7 +361,17 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: () {},
+      onTap: () async {
+        if (unread) {
+          await AnnouncementStore.markRead(id);
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _readAnnouncementIds.add(id);
+          });
+        }
+      },
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(14),
