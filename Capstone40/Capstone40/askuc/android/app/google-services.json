@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "206861061946",
+    "project_id": "askuc-e1aba",
+    "storage_bucket": "askuc-e1aba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206861061946:android:463bee107081ee766d8a03",
+        "android_client_info": {
+          "package_name": "com.example.askuc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDrJZR6kyaJkJial2NnklBWVOWtvqNd5k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
