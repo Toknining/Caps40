@@ -7,6 +7,61 @@ class AuthService {
   static const String studentsCollection = 'students';
   static const String rememberMeKey = 'remember_me';
 
+  static String normalizeLoginIdentifier(String value) {
+    final trimmed = value.trim();
+    if (trimmed.contains('@')) {
+      return trimmed.toLowerCase();
+    }
+    return trimmed.replaceAll(RegExp(r'\s+'), '');
+  }
+
+  static Future<UserCredential> loginStudent({
+    required String email,
+    required String password,
+  }) async {
+    final normalizedIdentifier = normalizeLoginIdentifier(email);
+    final trimmedEmail = normalizedIdentifier.contains('@')
+        ? normalizedIdentifier.toLowerCase()
+        : normalizedIdentifier;
+
+    if (trimmedEmail.contains('@')) {
+      return FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: trimmedEmail,
+        password: password,
+      );
+    }
+
+    final students = await FirebaseFirestore.instance
+        .collection(studentsCollection)
+        .where('studentId', isEqualTo: trimmedEmail)
+        .limit(1)
+        .get();
+
+    if (students.docs.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'No student account found for this ID.',
+      );
+    }
+
+    final profile = students.docs.first.data();
+    final profileEmail = (profile['email'] ?? '').toString().trim().toLowerCase();
+
+    if (profileEmail.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'student-email-missing',
+        message: 'This student profile does not have an email address.',
+      );
+    }
+
+    final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: profileEmail,
+      password: password,
+    );
+
+    return userCredential;
+  }
+
   static Map<String, dynamic> buildStudentProfile({
     required String firstName,
     required String lastName,
@@ -24,18 +79,6 @@ class AuthService {
       'createdAt': now,
       'updatedAt': now,
     };
-  }
-
-  static Future<UserCredential> loginStudent({
-    required String email,
-    required String password,
-  }) async {
-    final trimmedEmail = email.trim().toLowerCase();
-
-    return FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: trimmedEmail,
-      password: password,
-    );
   }
 
   static Future<void> resetPasswordForEmail(String email) async {

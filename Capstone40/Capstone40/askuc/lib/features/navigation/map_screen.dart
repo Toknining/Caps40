@@ -43,6 +43,25 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF8FAFC),
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close, color: Color(0xFF20262D)),
+          tooltip: 'Back',
+        ),
+        title: const Text(
+          'Campus Map',
+          style: TextStyle(
+            color: Color(0xFF20262D),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: false,
+      ),
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -50,36 +69,12 @@ class _MapScreenState extends State<MapScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
 
             children: [
-              // =====================================================
-              // HEADER
-              // =====================================================
               const Padding(
-                padding: EdgeInsets.fromLTRB(16, 18, 16, 0),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    Text(
-                      'Campus Map',
-                      textAlign: TextAlign.left,
-
-                      style: TextStyle(
-                        color: Color(0xFF20262D),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    SizedBox(height: 4),
-
-                    Text(
-                      'Find your destination',
-                      textAlign: TextAlign.left,
-
-                      style: TextStyle(color: Color(0xFF8A969E), fontSize: 11),
-                    ),
-                  ],
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Text(
+                  'Find your destination',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(color: Color(0xFF8A969E), fontSize: 11),
                 ),
               ),
 
@@ -270,7 +265,7 @@ class _MapScreenState extends State<MapScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
 
       isExpanded: true,
 

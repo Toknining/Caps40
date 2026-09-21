@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
@@ -281,7 +282,7 @@ class HomeScreen extends StatelessWidget {
               height: 48,
 
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.16),
+                color: Colors.white.withValues(alpha: 0.16),
 
                 borderRadius: BorderRadius.circular(13),
               ),
@@ -430,85 +431,113 @@ class HomeScreen extends StatelessWidget {
   // ================================================================
 
   Widget _latestAnnouncement() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('announcements')
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _announcementCard(
+            'Loading latest update...',
+            'Checking the newest campus announcement.',
+            'Now',
+          );
+        }
+
+        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _announcementCard(
+            'No announcements yet',
+            'New campus updates will appear here.',
+            'Today',
+          );
+        }
+
+        final data = snapshot.data!.docs.first.data();
+        final createdAt = data['createdAt'] is Timestamp
+            ? (data['createdAt'] as Timestamp).toDate()
+            : DateTime.now();
+
+        final title = (data['title'] ?? 'Announcement').toString();
+        final message = (data['message'] ?? '').toString();
+        final timeLabel = _formatAnnouncementTime(createdAt);
+
+        return _announcementCard(title, message, timeLabel);
+      },
+    );
+  }
+
+  String _formatAnnouncementTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    if (diff.inDays == 0) {
+      return 'Today';
+    }
+    if (diff.inDays == 1) {
+      return 'Yesterday';
+    }
+    if (diff.inDays < 7) {
+      return '${diff.inDays} days ago';
+    }
+
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+
+  Widget _announcementCard(String title, String message, String timeLabel) {
     return Container(
       width: double.infinity,
-
       padding: const EdgeInsets.all(13),
-
       decoration: BoxDecoration(
         color: Colors.white,
-
         borderRadius: BorderRadius.circular(15),
-
         border: Border.all(color: const Color(0xFFDDE7EC)),
       ),
-
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-
         children: [
           Container(
             width: 40,
             height: 40,
-
             decoration: BoxDecoration(
               color: const Color(0xFFEAF3FC),
-
               borderRadius: BorderRadius.circular(11),
             ),
-
             child: const Icon(
               Icons.campaign,
-
               color: Color(0xFF0866E8),
-
               size: 20,
             ),
           ),
-
           const SizedBox(width: 12),
-
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-
               children: [
                 Text(
-                  'Welcome to AskUC',
-
-                  style: TextStyle(
+                  title,
+                  style: const TextStyle(
                     color: Color(0xFF20262D),
-
                     fontSize: 12,
-
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-
-                SizedBox(height: 4),
-
+                const SizedBox(height: 4),
                 Text(
-                  'Your smart campus assistant is ready to help you with university information and navigation.',
-
+                  message,
                   maxLines: 2,
-
                   overflow: TextOverflow.ellipsis,
-
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFF8A969E),
-
                     fontSize: 9,
-
                     height: 1.4,
                   ),
                 ),
-
-                SizedBox(height: 5),
-
+                const SizedBox(height: 5),
                 Text(
-                  'Today',
-
-                  style: TextStyle(color: Color(0xFF9AA5AC), fontSize: 8),
+                  timeLabel,
+                  style: const TextStyle(color: Color(0xFF9AA5AC), fontSize: 8),
                 ),
               ],
             ),
@@ -588,7 +617,7 @@ class _FloatingChatbotState extends State<_FloatingChatbot>
 
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.18),
+                color: Colors.black.withValues(alpha: 0.18),
 
                 blurRadius: 12,
 

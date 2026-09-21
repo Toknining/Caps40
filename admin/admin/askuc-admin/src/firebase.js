@@ -9,11 +9,15 @@ import {
   getFirestore,
   collection,
   doc,
+  getDoc,
   getDocs,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
   where,
+  addDoc,
+  updateDoc,
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -44,55 +48,113 @@ export async function countStudents() {
 }
 
 export async function createAdminAccount(email, password) {
-  const userCredential = await createUserWithEmailAndPassword(
-    auth,
-    email,
-    password,
-  );
+  const normalizedEmail = email.trim().toLowerCase();
 
-  const uid = userCredential.user.uid;
+  try {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      normalizedEmail,
+      password,
+    );
 
-  await setDoc(
-    doc(db, 'students', uid),
-    {
-      email: email.toLowerCase().trim(),
-      role: 'admin',
-      firstName: 'Admin',
-      lastName: 'User',
-      studentId: 'ADMIN',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+    const uid = userCredential.user.uid;
 
-  return userCredential.user;
+    await setDoc(
+      doc(db, 'students', uid),
+      {
+        email: normalizedEmail,
+        role: 'admin',
+        firstName: 'Admin',
+        lastName: 'User',
+        studentId: 'ADMIN',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return userCredential.user;
+  } catch (error) {
+    await signOut(auth).catch(() => undefined);
+
+    const message = error?.message || 'Failed to create admin account.';
+
+    if (message.includes('permission') || message.includes('Permission')) {
+      throw new Error('Firestore permission denied. Deploy the Firestore rules first, then create the admin account again.');
+    }
+
+    throw new Error(message);
+  }
+}
+
+export async function createAnnouncement({ title, message }) {
+  const announcementRef = await addDoc(collection(db, 'announcements'), {
+    title: title.trim(),
+    message: message.trim(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  return announcementRef.id;
+}
+
+export async function updateAnnouncement(id, { title, message }) {
+  const announcementRef = doc(db, 'announcements', id);
+
+  await updateDoc(announcementRef, {
+    title: title.trim(),
+    message: message.trim(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function getAnnouncements() {
+  const announcementsRef = collection(db, 'announcements');
+  const q = query(announcementsRef, orderBy('createdAt', 'desc'));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+  }));
 }
 
 export async function adminSignIn(email, password) {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password);
-  const user = userCredential.user;
+  const normalizedEmail = email.trim().toLowerCase();
 
-  const usersRef = collection(db, 'students');
-  const q = query(
-    usersRef,
-    where('email', '==', user.email?.toLowerCase()),
-  );
-  const snapshot = await getDocs(q);
+  try {
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      normalizedEmail,
+      password,
+    );
 
-  if (snapshot.empty) {
-    await signOut(auth);
-    throw new Error('Your account is not a registered student account.');
+    const user = userCredential.user;
+    const profileRef = doc(db, 'students', user.uid);
+    const profileSnapshot = await getDoc(profileRef);
+
+    if (!profileSnapshot.exists()) {
+      await signOut(auth).catch(() => undefined);
+      throw new Error('No admin profile was found in Firestore. Please create the admin account again.');
+    }
+
+    const profile = profileSnapshot.data();
+
+    if (profile.role !== 'admin') {
+      await signOut(auth).catch(() => undefined);
+      throw new Error('This account does not have admin access.');
+    }
+
+    return user;
+  } catch (error) {
+    const message = error?.message || 'Admin sign in failed.';
+
+    if (message.includes('permission') || message.includes('Permission')) {
+      throw new Error('Firestore permission denied. Deploy the Firestore rules before trying to log in again.');
+    }
+
+    throw new Error(message);
   }
-
-  const profile = snapshot.docs[0].data();
-
-  if (profile.role !== 'admin') {
-    await signOut(auth);
-    throw new Error('This account does not have admin access.');
-  }
-
-  return user;
 }
 
 export { signOut as adminSignOut };

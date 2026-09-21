@@ -5,6 +5,9 @@ import {
   checkForAdminAccount,
   countStudents,
   createAdminAccount,
+  createAnnouncement,
+  getAnnouncements,
+  updateAnnouncement,
 } from './firebase';
 
 function App() {
@@ -955,13 +958,159 @@ function UsersPage() {
 ============================================================ */
 
 function AnnouncementsPage() {
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, []);
+
+  async function loadAnnouncements() {
+    try {
+      const data = await getAnnouncements();
+      setAnnouncements(data);
+    } catch (error) {
+      console.error('Failed to load announcements:', error);
+      setAnnouncements([]);
+    }
+  }
+
+  const resetForm = () => {
+    setTitle('');
+    setMessage('');
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!title.trim() || !message.trim()) {
+      alert('Please enter both a title and message.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      if (editingId) {
+        await updateAnnouncement(editingId, { title, message });
+        alert('Announcement updated successfully.');
+      } else {
+        await createAnnouncement({ title, message });
+        alert('Announcement published successfully.');
+      }
+
+      resetForm();
+      await loadAnnouncements();
+    } catch (error) {
+      alert(error.message || 'Failed to save announcement.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEdit = (announcement) => {
+    setTitle(announcement.title || '');
+    setMessage(announcement.message || '');
+    setEditingId(announcement.id);
+  };
+
   return (
-    <PagePlaceholder
-      icon="⚑"
-      title="Announcements"
-      description="Create and broadcast university announcements."
-      button="Create Announcement"
-    />
+    <div className="module-page">
+      <div className="module-heading">
+        <div>
+          <h1>Announcements</h1>
+          <p>Create and broadcast university announcements.</p>
+        </div>
+      </div>
+
+      <div className="announcement-layout">
+        <div className="announcement-form-card">
+          <div className="announcement-card-header">
+            <div className="announcement-icon">⚑</div>
+            <div>
+              <h3>{editingId ? 'Edit Announcement' : 'Create Announcement'}</h3>
+              <p>{editingId ? 'Update the selected message.' : 'Share a new update with students.'}</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="announcement-form">
+            <div className="form-group">
+              <label>Title</label>
+              <input
+                type="text"
+                placeholder="Announcement title"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Message</label>
+              <textarea
+                rows="6"
+                placeholder="Write your announcement here..."
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="announcement-action-row">
+              <button type="submit" className="login-button" disabled={loading}>
+                {loading ? 'Saving...' : editingId ? 'Update Announcement' : 'Publish Announcement'}
+              </button>
+
+              {editingId && (
+                <button type="button" className="secondary-button" onClick={resetForm}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        <div className="announcement-stream-card">
+          <div className="announcement-card-header compact">
+            <div>
+              <h3>Published Announcements</h3>
+              <p>Latest campus updates</p>
+            </div>
+          </div>
+
+          <div className="announcement-list">
+            {announcements.length === 0 ? (
+              <div className="announcement-empty">
+                <div className="announcement-empty-icon">⚑</div>
+                <strong>No announcements yet</strong>
+                <span>Your published updates will appear here.</span>
+              </div>
+            ) : (
+              announcements.map((announcement, index) => (
+                <div className="announcement-item" key={announcement.id || index}>
+                  <div className="announcement-badge">{index + 1}</div>
+                  <div className="announcement-copy">
+                    <strong>{announcement.title}</strong>
+                    <span>{announcement.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="announcement-edit-button"
+                    onClick={() => startEdit(announcement)}
+                  >
+                    Edit
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

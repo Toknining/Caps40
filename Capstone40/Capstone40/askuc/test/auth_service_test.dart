@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:askuc/features/announcements/announcements_screen.dart';
 import 'package:askuc/services/auth_service.dart';
 
 void main() {
@@ -36,6 +38,12 @@ void main() {
       expect(profile['studentId'], '20240123');
     });
 
+    test('login identifiers are normalized for student ID or email input', () {
+      expect(AuthService.normalizeLoginIdentifier(' 20240123 '), '20240123');
+      expect(AuthService.normalizeLoginIdentifier(' Jane.Doe@School.edu '),
+          'jane.doe@school.edu');
+    });
+
     test('remember me persists and clears correctly', () async {
       SharedPreferences.setMockInitialValues({});
 
@@ -44,6 +52,18 @@ void main() {
 
       await AuthService.setRememberMe(false);
       expect(await AuthService.shouldAutoLogin(), isFalse);
+    });
+
+    test('announcement data is mapped correctly from Firestore', () {
+      final announcement = AnnouncementMapper.fromMap({
+        'title': 'Campus Update',
+        'message': 'Classes moved to Building B.',
+        'createdAt': Timestamp.fromDate(DateTime(2026, 9, 21, 8, 30)),
+      });
+
+      expect(announcement['title'], 'Campus Update');
+      expect(announcement['message'], 'Classes moved to Building B.');
+      expect(announcement['time'], isA<String>());
     });
   });
 }
