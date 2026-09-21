@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
+import '../../services/auth_service.dart';
 import '../profile/profile_screen.dart';
 import '../auth/change_password_screen.dart';
 
@@ -98,8 +100,13 @@ class SettingsScreen extends StatelessWidget {
 
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.pop(dialogContext);
+
+                          await AuthService.clearRememberMe();
+                          await FirebaseAuth.instance.signOut();
+
+                          if (!context.mounted) return;
 
                           Navigator.pushNamedAndRemoveUntil(
                             context,

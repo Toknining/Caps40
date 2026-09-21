@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 
 import '../../app/routes.dart';
+import '../../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -35,17 +38,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _createAccount() {
+  Future<void> _createAccount() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Firebase registration will be connected here.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Account registration will be connected to Firebase.'),
-      ),
-    );
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await AuthService.registerStudent(
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        studentId: _studentIdController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      await AuthService.setRememberMe(true);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration saved to the database.'),
+        ),
+      );
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.main,
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'Registration failed. Please try again.';
+
+      if (e.code == 'email-already-in-use') {
+        message = 'This email is already registered.';
+      } else if (e.code == 'weak-password') {
+        message = 'Please use a stronger password.';
+      } else if (e.code == 'invalid-email') {
+        message = 'Please enter a valid email address.';
+      } else if (e.code == 'operation-not-allowed') {
+        message =
+            'Email/password registration is disabled in Firebase. Enable Email/Password in Firebase Console > Authentication > Sign-in method.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save registration: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
@@ -292,7 +349,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   height: 46,
 
                   child: ElevatedButton(
-                    onPressed: _createAccount,
+                    onPressed: _isSubmitting ? null : _createAccount,
 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0866E8),
@@ -304,14 +361,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
 
-                    child: const Text(
-                      'CREATE ACCOUNT',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontStyle: FontStyle.normal,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'CREATE ACCOUNT',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.normal,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                   ),
                 ),
 

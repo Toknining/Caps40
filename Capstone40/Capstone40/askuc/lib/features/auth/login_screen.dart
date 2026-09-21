@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +18,23 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberMePreference();
+  }
+
+  Future<void> _loadRememberMePreference() async {
+    final rememberMe = await AuthService.shouldAutoLogin();
+    if (mounted) {
+      setState(() {
+        _rememberMe = rememberMe;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -25,27 +44,111 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Firebase Authentication will be connected here.
-    //
-    // For now, go to the main application screen.
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.main,
-      (route) => false,
-    );
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await AuthService.loginStudent(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      await AuthService.setRememberMe(_rememberMe);
+
+      if (!mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.main,
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'Login failed. Please check your email and password.';
+
+      if (e.code == 'student-not-found') {
+        message = 'No student found for this ID.';
+      } else if (e.code == 'student-email-missing') {
+        message = 'This student profile is missing an email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Incorrect password.';
+      } else if (e.code == 'user-not-found') {
+        message = 'No account found for this student ID.';
+      } else if (e.code == 'invalid-email') {
+        message = 'Please enter a valid student ID.';
+      } else if (e.code == 'user-disabled') {
+        message = 'This account has been disabled.';
+      } else if (e.code == 'operation-not-allowed') {
+        message =
+            'Email/password login is disabled in Firebase. Enable Email/Password in Firebase Console > Authentication > Sign-in method.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
-  void _forgotPassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Password reset will be connected to Firebase.'),
-      ),
-    );
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email first.')),
+      );
+      return;
+    }
+
+    try {
+      await AuthService.resetPasswordForEmail(email);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'Unable to send password reset email.';
+
+      if (e.code == 'user-not-found') {
+        message = 'No account is registered for this email.';
+      } else if (e.code == 'invalid-email') {
+        message = 'Please enter a valid email address.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Password reset error: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -232,7 +335,34 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+
+                // ==================================================
+                // REMEMBER ME
+                // ==================================================
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      activeColor: const Color(0xFF0866E8),
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                    ),
+                    const Text(
+                      'Remember me',
+                      style: TextStyle(
+                        color: Color(0xFF34454F),
+                        fontSize: 11,
+                        fontStyle: FontStyle.normal,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
 
                 // ==================================================
                 // LOGIN BUTTON
@@ -242,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 46,
 
                   child: ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _isSubmitting ? null : _login,
 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0866E8),
@@ -256,14 +386,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    child: const Text(
-                      'LOGIN',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontStyle: FontStyle.normal,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'LOGIN',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.normal,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                   ),
                 ),
 

@@ -13,7 +13,9 @@ import '../features/announcements/announcements_screen.dart';
 import '../features/settings/settings_screen.dart';
 
 class AskUCApp extends StatelessWidget {
-  const AskUCApp({super.key});
+  const AskUCApp({super.key, this.initialRoute = AppRoutes.login});
+
+  final String initialRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,7 @@ class AskUCApp extends StatelessWidget {
 
       theme: AskUCTheme.lightTheme,
 
-      initialRoute: AppRoutes.login,
+      initialRoute: initialRoute,
 
       routes: {
         AppRoutes.login: (_) => const LoginScreen(),

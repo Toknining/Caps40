@@ -1,15 +1,42 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  adminSignIn,
+  adminSignOut,
+  checkForAdminAccount,
+  countStudents,
+  createAdminAccount,
+} from './firebase';
 
 function App() {
+  const [loading, setLoading] = useState(true);
+  const [hasAdminAccount, setHasAdminAccount] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
   const [loggedIn, setLoggedIn] = useState(() => {
     const rememberEnabled = localStorage.getItem('askuc_remember') === 'true';
-    const rememberedLogin = rememberEnabled && localStorage.getItem('askuc_logged_in') === 'true';
+    const rememberedLogin =
+      rememberEnabled && localStorage.getItem('askuc_logged_in') === 'true';
     const sessionLogin = sessionStorage.getItem('askuc_logged_in') === 'true';
 
     return rememberedLogin || sessionLogin;
   });
 
   const [activePage, setActivePage] = useState('Dashboard');
+
+  useEffect(() => {
+    async function loadAdminStatus() {
+      try {
+        const adminExists = await checkForAdminAccount();
+        setHasAdminAccount(adminExists);
+      } catch (error) {
+        console.error('Could not check admin account status:', error);
+        setHasAdminAccount(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadAdminStatus();
+  }, []);
 
   const handleLogin = (remember) => {
     const shouldRemember = Boolean(remember);
@@ -29,17 +56,54 @@ function App() {
     setLoggedIn(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await adminSignOut();
+    } catch (error) {
+      console.warn('Firebase sign-out warning:', error);
+    }
+
     localStorage.removeItem('askuc_logged_in');
     localStorage.removeItem('askuc_remember');
     localStorage.removeItem('askuc_admin_email');
     localStorage.removeItem('askuc_admin_password');
     sessionStorage.removeItem('askuc_logged_in');
+
+    setAuthMode('login');
     setLoggedIn(false);
+    setActivePage('Dashboard');
   };
 
+  if (loading) {
+    return <div className="login-page"><div className="login-card"><p>Loading admin access...</p></div></div>;
+  }
+
+  if (!loggedIn && !hasAdminAccount) {
+    return (
+      <AuthScreen
+        mode={authMode}
+        setMode={setAuthMode}
+        onCreated={() => {
+          setHasAdminAccount(true);
+          setAuthMode('login');
+        }}
+        onLogin={handleLogin}
+      />
+    );
+  }
+
   if (!loggedIn) {
-    return <AdminLogin onLogin={handleLogin} />;
+    return (
+      <AuthScreen
+        mode={authMode}
+        setMode={setAuthMode}
+        onCreated={() => {
+          setHasAdminAccount(true);
+          setAuthMode('login');
+        }}
+        onLogin={handleLogin}
+      />
+    );
   }
 
   return (
@@ -51,11 +115,118 @@ function App() {
   );
 }
 
+function AuthScreen({ mode, setMode, onCreated, onLogin }) {
+  if (mode === 'register') {
+    return <CreateAdminAccount onCreated={onCreated} onSwitchToLogin={() => setMode('login')} />;
+  }
+
+  return <AdminLogin onLogin={onLogin} onSwitchToRegister={() => setMode('register')} />;
+}
+
+function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!email.trim() || !password) {
+      alert('Please enter an email and password.');
+      return;
+    }
+
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await createAdminAccount(email, password);
+      alert('Admin account created successfully. Please sign in.');
+      onCreated();
+    } catch (error) {
+      alert(error.message || 'Failed to create admin account.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="admin-logo">
+          <div className="admin-logo-icon">▦</div>
+          <h1>Create Admin</h1>
+          <p>Set up the first admin account</p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Admin Email</label>
+            <input
+              type="email"
+              placeholder="admin@university.edu"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Confirm Password</label>
+            <input
+              type="password"
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" className="login-button" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating...' : 'Create Admin Account'}
+          </button>
+
+          <div className="login-footer" style={{ marginTop: 18 }}>
+            <button
+              type="button"
+              className="forgot-button"
+              onClick={onSwitchToLogin}
+              style={{ color: '#0866E8', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              Already have an account? Login
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ============================================================
    ADMIN LOGIN
 ============================================================ */
 
-function AdminLogin({ onLogin }) {
+function AdminLogin({ onLogin, onSwitchToRegister }) {
   const [email, setEmail] = useState(() => {
     const rememberEnabled = localStorage.getItem('askuc_remember') === 'true';
     return rememberEnabled ? (localStorage.getItem('askuc_admin_email') ?? '') : '';
@@ -68,22 +239,28 @@ function AdminLogin({ onLogin }) {
     return localStorage.getItem('askuc_remember') === 'true';
   });
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault();
 
-    if (remember) {
-      localStorage.setItem('askuc_admin_email', email);
-      localStorage.setItem('askuc_admin_password', password);
-      localStorage.setItem('askuc_remember', 'true');
-    } else {
-      localStorage.removeItem('askuc_admin_email');
-      localStorage.removeItem('askuc_admin_password');
-      localStorage.setItem('askuc_remember', 'false');
-    }
+    try {
+      const user = await adminSignIn(email, password);
 
-    // Temporary frontend login.
-    // Firebase Authentication will be connected later.
-    onLogin(remember);
+      if (user) {
+        if (remember) {
+          localStorage.setItem('askuc_admin_email', email);
+          localStorage.setItem('askuc_admin_password', password);
+          localStorage.setItem('askuc_remember', 'true');
+        } else {
+          localStorage.removeItem('askuc_admin_email');
+          localStorage.removeItem('askuc_admin_password');
+          localStorage.setItem('askuc_remember', 'false');
+        }
+
+        onLogin(remember);
+      }
+    } catch (error) {
+      alert(error.message || 'Admin login failed.');
+    }
   };
 
   return (
@@ -156,6 +333,17 @@ function AdminLogin({ onLogin }) {
 
         <div className="login-footer">
           University Campus Administration System
+        </div>
+
+        <div className="login-footer" style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            className="forgot-button"
+            onClick={onSwitchToRegister}
+            style={{ color: '#0866E8', background: 'transparent', border: 'none', cursor: 'pointer' }}
+          >
+            Create admin account
+          </button>
         </div>
 
       </div>
@@ -358,6 +546,37 @@ function Topbar({ activePage }) {
 ============================================================ */
 
 function Dashboard() {
+  const [studentCount, setStudentCount] = useState(0);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadStudentCount() {
+      try {
+        const count = await countStudents();
+        if (isMounted) {
+          setStudentCount(count);
+        }
+      } catch (error) {
+        console.error('Failed to load student count:', error);
+        if (isMounted) {
+          setStudentCount(0);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingStudents(false);
+        }
+      }
+    }
+
+    loadStudentCount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div className="dashboard">
 
@@ -380,8 +599,8 @@ function Dashboard() {
         <StatCard
           icon="♙"
           title="Students"
-          value="1,000"
-          change="+12%"
+          value={loadingStudents ? 'Loading...' : String(studentCount)}
+          change="Live"
           description="Total student accounts"
         />
 
