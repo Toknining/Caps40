@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../home/home_screen.dart';
@@ -110,7 +111,7 @@ class _MainScreenState extends State<MainScreen>
 
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
+                  color: Colors.black.withValues(alpha: 0.18),
 
                   blurRadius: 12,
 
@@ -247,63 +248,81 @@ class _AskUCBottomNavigation extends StatelessWidget {
       onTap: () {
         onItemSelected(index);
       },
-
       behavior: HitTestBehavior.opaque,
-
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-
         curve: Curves.easeOut,
-
         width: 82,
-
         padding: const EdgeInsets.symmetric(vertical: 6),
-
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFEAF3FC) : Colors.transparent,
-
           borderRadius: BorderRadius.circular(14),
         ),
-
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            // --------------------------------------------------------
-            // ICON
-            // --------------------------------------------------------
-            Icon(
-              isSelected ? selectedIcon : icon,
-
-              color: isSelected
-                  ? const Color(0xFF0866E8)
-                  : const Color(0xFF8A969E),
-
-              size: 22,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isSelected ? selectedIcon : icon,
+                  color: isSelected
+                      ? const Color(0xFF0866E8)
+                      : const Color(0xFF8A969E),
+                  size: 22,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected
+                        ? const Color(0xFF0866E8)
+                        : const Color(0xFF8A969E),
+                    fontSize: 8,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
+            if (index == 2)
+              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: FirebaseFirestore.instance
+                    .collection('announcements')
+                    .orderBy('createdAt', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
 
-            const SizedBox(height: 3),
+                  if (count == 0) {
+                    return const SizedBox.shrink();
+                  }
 
-            // --------------------------------------------------------
-            // LABEL
-            // --------------------------------------------------------
-            Text(
-              label,
-
-              maxLines: 1,
-
-              overflow: TextOverflow.ellipsis,
-
-              style: TextStyle(
-                color: isSelected
-                    ? const Color(0xFF0866E8)
-                    : const Color(0xFF8A969E),
-
-                fontSize: 8,
-
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  return Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          count > 99 ? '99+' : count.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-            ),
           ],
         ),
       ),
