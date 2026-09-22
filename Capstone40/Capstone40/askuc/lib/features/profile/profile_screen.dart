@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import 'profile_image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -59,6 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               };
 
               final fullName = '${profile['firstName'] ?? 'Student'} ${profile['lastName'] ?? 'User'}'.trim();
+              final photoUrl = profile['photoUrl'] ?? '';
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 25),
@@ -77,18 +79,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Column(
                         children: [
-                          Container(
-                            width: 75,
-                            height: 75,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFEAF3FC),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              color: Color(0xFF0866E8),
-                              size: 40,
-                            ),
+                          ProfileImagePicker(
+                            photoUrl: photoUrl,
+                            onUpdated: () {
+                              setState(() {});
+                            },
                           ),
 
                           const SizedBox(height: 12),

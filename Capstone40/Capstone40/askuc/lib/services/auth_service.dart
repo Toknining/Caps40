@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
@@ -72,6 +71,7 @@ class AuthService {
     required String lastName,
     required String studentId,
     required String email,
+    String? photoUrl,
   }) {
     final now = DateTime.now();
 
@@ -80,6 +80,7 @@ class AuthService {
       'lastName': lastName.trim(),
       'studentId': studentId.trim(),
       'email': email.trim().toLowerCase(),
+      'photoUrl': (photoUrl ?? '').trim(),
       'role': 'student',
       'createdAt': now,
       'updatedAt': now,
@@ -131,13 +132,6 @@ class AuthService {
   static Future<void> setRememberMe(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(rememberMeKey, value);
-
-    if (!value && Firebase.apps.isNotEmpty) {
-      final auth = FirebaseAuth.instance;
-      if (auth.currentUser != null) {
-        await auth.signOut();
-      }
-    }
   }
 
   static Future<bool> shouldAutoLogin() async {
@@ -158,6 +152,7 @@ class AuthService {
         'lastName': 'User',
         'studentId': 'N/A',
         'email': 'Not signed in',
+        'photoUrl': '',
       };
     }
 
@@ -172,6 +167,7 @@ class AuthService {
       final lastName = (data['lastName'] ?? '').toString().trim();
       final studentId = (data['studentId'] ?? '').toString().trim();
       final email = (data['email'] ?? user.email ?? '').toString().trim();
+      final photoUrl = (data['photoUrl'] ?? '').toString().trim();
 
       if (doc.exists) {
         return {
@@ -179,6 +175,7 @@ class AuthService {
           'lastName': lastName.isNotEmpty ? lastName : 'User',
           'studentId': studentId.isNotEmpty ? studentId : 'N/A',
           'email': email.isNotEmpty ? email : 'Not available',
+          'photoUrl': photoUrl,
         };
       }
 
@@ -194,12 +191,14 @@ class AuthService {
         final matchedLastName = (record['lastName'] ?? '').toString().trim();
         final matchedStudentId = (record['studentId'] ?? '').toString().trim();
         final matchedEmail = (record['email'] ?? email).toString().trim();
+        final matchedPhotoUrl = (record['photoUrl'] ?? '').toString().trim();
 
         return {
           'firstName': matchedFirstName.isNotEmpty ? matchedFirstName : 'Student',
           'lastName': matchedLastName.isNotEmpty ? matchedLastName : 'User',
           'studentId': matchedStudentId.isNotEmpty ? matchedStudentId : 'N/A',
           'email': matchedEmail.isNotEmpty ? matchedEmail : 'Not available',
+          'photoUrl': matchedPhotoUrl,
         };
       }
 
@@ -208,6 +207,7 @@ class AuthService {
         'lastName': lastName.isNotEmpty ? lastName : 'User',
         'studentId': studentId.isNotEmpty ? studentId : 'N/A',
         'email': email.isNotEmpty ? email : 'Not available',
+        'photoUrl': photoUrl,
       };
     } catch (_) {
       return {
@@ -215,7 +215,29 @@ class AuthService {
         'lastName': 'User',
         'studentId': 'N/A',
         'email': 'Not available',
+        'photoUrl': '',
       };
     }
+  }
+
+  static Future<void> updateStudentPhotoUrl(String photoUrl) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'not-signed-in',
+        message: 'A student must be signed in to update the profile image.',
+      );
+    }
+
+    await FirebaseFirestore.instance
+        .collection(studentsCollection)
+        .doc(user.uid)
+        .set(
+          {
+            'photoUrl': photoUrl.trim(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        );
   }
 }

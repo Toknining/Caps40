@@ -119,6 +119,13 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email for password reset.')),
+      );
+      return;
+    }
+
     try {
       await AuthService.resetPasswordForEmail(email);
 
@@ -240,17 +247,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your email';
+                      return 'Please enter your email or student ID';
                     }
 
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
+                    final trimmed = value.trim();
+                    if (trimmed.contains('@')) {
+                      return null;
+                    }
+
+                    if (trimmed.length < 3) {
+                      return 'Please enter a valid email or student ID';
                     }
 
                     return null;
                   },
 
-                  decoration: _inputDecoration(hintText: 'Enter your email'),
+                  decoration: _inputDecoration(
+                    hintText: 'Enter your email or student ID',
+                  ),
                 ),
 
                 const SizedBox(height: 12),

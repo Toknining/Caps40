@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../services/auth_service.dart';
+import '../profile/profile_image_picker.dart';
 import '../profile/profile_screen.dart';
 import '../auth/change_password_screen.dart';
 
@@ -210,6 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         lastName: profile['lastName'] ?? 'User',
                         studentId: profile['studentId'] ?? 'N/A',
                         email: profile['email'] ?? 'Not available',
+                        photoUrl: profile['photoUrl'] ?? '',
                       );
                     },
                   );
@@ -332,6 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String lastName,
     required String studentId,
     required String email,
+    required String photoUrl,
   }) {
     final fullName = '$firstName $lastName'.trim();
 
@@ -345,14 +348,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: const BoxDecoration(
-              color: Color(0xFFEAF3FC),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.person, color: Color(0xFF0866E8), size: 27),
+          ProfileImagePicker(
+            photoUrl: photoUrl,
+            onUpdated: () {
+              setState(() {});
+            },
           ),
 
           const SizedBox(width: 13),

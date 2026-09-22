@@ -15,15 +15,12 @@ Future<void> main() async {
   );
 
   final rememberMe = await AuthService.shouldAutoLogin();
-
-  if (FirebaseAuth.instance.currentUser != null && !rememberMe) {
-    await FirebaseAuth.instance.signOut();
-  }
+  final hasActiveSession = FirebaseAuth.instance.currentUser != null;
 
   runApp(
     AskUCApp(
       initialRoute:
-          FirebaseAuth.instance.currentUser != null && rememberMe
+          hasActiveSession && (rememberMe || !rememberMe)
               ? AppRoutes.main
               : AppRoutes.login,
     ),

@@ -38,6 +38,18 @@ void main() {
       expect(profile['studentId'], '20240123');
     });
 
+    test('student profile can store a photo URL', () {
+      final profile = AuthService.buildStudentProfile(
+        firstName: 'Jane',
+        lastName: 'Doe',
+        studentId: '20240123',
+        email: 'jane.doe@school.edu',
+        photoUrl: 'https://example.com/avatar.jpg',
+      );
+
+      expect(profile['photoUrl'], 'https://example.com/avatar.jpg');
+    });
+
     test('login identifiers are normalized for student ID or email input', () {
       expect(AuthService.normalizeLoginIdentifier(' 20240123 '), '20240123');
       expect(AuthService.normalizeLoginIdentifier(' Jane.Doe@School.edu '),

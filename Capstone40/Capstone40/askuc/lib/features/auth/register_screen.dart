@@ -105,6 +105,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  void _returnToLogin() {
+    final navigator = Navigator.of(context);
+
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    navigator.pushNamedAndRemoveUntil(
+      AppRoutes.login,
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasConfirmValue = _confirmPasswordController.text.isNotEmpty;
@@ -125,6 +139,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
 
               children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    tooltip: 'Back to login',
+                    onPressed: _isSubmitting ? null : _returnToLogin,
+                    icon: const Icon(Icons.close),
+                    color: const Color(0xFF34454F),
+                  ),
+                ),
+
                 // ==================================================
                 // ASKUC LOGO
                 // ==================================================
