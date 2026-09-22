@@ -1,50 +1,148 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AnnouncementStore {
-  static const String _readIdsKey = 'read_announcement_ids';
   static final ValueNotifier<Set<String>> readIdsNotifier =
       ValueNotifier<Set<String>>(<String>{});
+  static StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _profileSubscription;
+  static String? _activeUserId;
+  static String? _initializingUserId;
+  static Future<void>? _initialization;
 
-  static Future<Set<String>> _loadReadIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rawValue = prefs.getStringList(_readIdsKey) ?? const [];
-    final ids = rawValue.toSet();
+  static void _setReadIds(Iterable<dynamic> values) {
+    final ids = values
+        .map((value) => value.toString().trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
     readIdsNotifier.value = ids;
-    return ids;
   }
 
   static Future<void> initialize() async {
-    await _loadReadIds();
-  }
+    final user = FirebaseAuth.instance.currentUser;
 
-  static Future<Set<String>> getReadIds() async => _loadReadIds();
-
-  static Future<void> markRead(String announcementId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final current = (prefs.getStringList(_readIdsKey) ?? const []).toSet();
-    current.add(announcementId);
-    await prefs.setStringList(_readIdsKey, current.toList());
-    readIdsNotifier.value = current;
-  }
-
-  static Future<void> markAllRead(List<String> ids) async {
-    if (ids.isEmpty) {
+    if (user == null) {
+      await _profileSubscription?.cancel();
+      _profileSubscription = null;
+      _activeUserId = null;
+      _initializingUserId = null;
+      _initialization = null;
+      _setReadIds(const <String>[]);
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final current = (prefs.getStringList(_readIdsKey) ?? const []).toSet();
-    final next = <String>{...current, ...ids.where((id) => id.trim().isNotEmpty)};
-    await prefs.setStringList(_readIdsKey, next.toList());
-    readIdsNotifier.value = next;
+    if (_activeUserId == user.uid) {
+      return;
+    }
+
+    if (_initializingUserId == user.uid && _initialization != null) {
+      await _initialization;
+      return;
+    }
+
+    final initialization = _initializeForUser(user.uid);
+    _initializingUserId = user.uid;
+    _initialization = initialization;
+
+    try {
+      await initialization;
+    } finally {
+      if (_initializingUserId == user.uid) {
+        _initializingUserId = null;
+        _initialization = null;
+      }
+    }
+  }
+
+  static Future<void> _initializeForUser(String userId) async {
+    await _profileSubscription?.cancel();
+    _profileSubscription = null;
+    _activeUserId = null;
+
+    final profileRef = FirebaseFirestore.instance
+        .collection('students')
+        .doc(userId);
+    final profileSnapshot = await profileRef.get();
+
+    if (FirebaseAuth.instance.currentUser?.uid != userId) {
+      return;
+    }
+
+    _setReadIds(
+      profileSnapshot.data()?['readAnnouncementIds'] as List? ?? const [],
+    );
+    _activeUserId = userId;
+
+    _profileSubscription = profileRef.snapshots().listen((snapshot) {
+      if (_activeUserId != userId) {
+        return;
+      }
+
+      _setReadIds(snapshot.data()?['readAnnouncementIds'] as List? ?? const []);
+    });
+  }
+
+  static Future<Set<String>> getReadIds() async {
+    await initialize();
+    return readIdsNotifier.value;
+  }
+
+  static Future<void> markRead(String announcementId) async {
+    final id = announcementId.trim();
+    if (id.isEmpty) {
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _setReadIds(<String>{...readIdsNotifier.value, id});
+      return;
+    }
+
+    await FirebaseFirestore.instance.collection('students').doc(user.uid).set({
+      'readAnnouncementIds': FieldValue.arrayUnion([id]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    _setReadIds(<String>{...readIdsNotifier.value, id});
+  }
+
+  static Future<void> markAllRead(List<String> ids) async {
+    final validIds = ids.where((id) => id.trim().isNotEmpty).toSet();
+    if (validIds.isEmpty) {
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _setReadIds(<String>{...readIdsNotifier.value, ...validIds});
+      return;
+    }
+
+    await FirebaseFirestore.instance.collection('students').doc(user.uid).set({
+      'readAnnouncementIds': FieldValue.arrayUnion(validIds.toList()),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    _setReadIds(<String>{...readIdsNotifier.value, ...validIds});
   }
 
   static Future<void> clearReadIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_readIdsKey, const []);
-    readIdsNotifier.value = <String>{};
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('students')
+          .doc(user.uid)
+          .set({
+            'readAnnouncementIds': const <String>[],
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    }
+
+    _setReadIds(const <String>[]);
   }
 
   static Future<int> getUnreadCount(List<String> ids) async {
@@ -154,18 +252,21 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       return;
     }
 
-    final updatedReadIds = Set<String>.from(_readAnnouncementIds)..addAll(unreadIds);
+    final updatedReadIds = Set<String>.from(_readAnnouncementIds)
+      ..addAll(unreadIds);
 
     setState(() {
       _readAnnouncementIds = updatedReadIds;
       _notifications
         ..clear()
-        ..addAll(snapshot.docs.map((doc) {
-          final item = AnnouncementMapper.fromMap(doc.data());
-          item['id'] = doc.id;
-          item['unread'] = false;
-          return item;
-        }).toList());
+        ..addAll(
+          snapshot.docs.map((doc) {
+            final item = AnnouncementMapper.fromMap(doc.data());
+            item['id'] = doc.id;
+            item['unread'] = false;
+            return item;
+          }).toList(),
+        );
     });
   }
 
@@ -266,14 +367,14 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   stream: _announcementsStream,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     if (snapshot.hasError) {
                       return Center(
-                        child: Text('Failed to load announcements: ${snapshot.error}'),
+                        child: Text(
+                          'Failed to load announcements: ${snapshot.error}',
+                        ),
                       );
                     }
 
@@ -357,10 +458,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             const Text(
               'New campus updates will appear here.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF8A969E),
-                fontSize: 11,
-              ),
+              style: TextStyle(color: Color(0xFF8A969E), fontSize: 11),
             ),
           ],
         ),
@@ -409,9 +507,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: unread
-                ? const Color(0xFFDBEAFE)
-                : const Color(0xFFE3EBF2),
+            color: unread ? const Color(0xFFDBEAFE) : const Color(0xFFE3EBF2),
             width: unread ? 1.3 : 1,
           ),
           boxShadow: [

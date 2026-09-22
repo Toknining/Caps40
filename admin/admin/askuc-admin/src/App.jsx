@@ -17,10 +17,15 @@ import {
   getFaqs,
   getStudents,
   resetStudentPassword,
+  subscribeToAdminAuthState,
+  subscribeToCurrentAdminProfile,
   subscribeToAnnouncementCount,
   subscribeToAnnouncements,
+  subscribeToChatbotQueries,
   subscribeToFaqCount,
+  subscribeToNavigationSearches,
   updateAnnouncement,
+  updateCurrentAdminName,
   updateFaq,
   updateStudentAccount,
 } from './firebase';
@@ -42,6 +47,7 @@ function App() {
   });
 
   const [activePage, setActivePage] = useState('Dashboard');
+  const [adminUid, setAdminUid] = useState(() => auth.currentUser?.uid ?? null);
 
   const loadAdminProfile = async () => {
     try {
@@ -65,6 +71,23 @@ function App() {
 
     loadAdminStatus();
   }, []);
+
+  useEffect(() => {
+    return subscribeToAdminAuthState((user) => {
+      setAdminUid(user?.uid ?? null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!loggedIn || !adminUid) {
+      return undefined;
+    }
+
+    return subscribeToCurrentAdminProfile(
+      (profile) => setAdminProfile(profile),
+      (error) => console.error('Failed to keep admin profile in sync:', error),
+    );
+  }, [loggedIn, adminUid]);
 
   const handleLogin = async (remember) => {
     const shouldRemember = Boolean(remember);
@@ -159,6 +182,8 @@ function AuthScreen({ mode, setMode, onCreated, onLogin }) {
 }
 
 function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -167,8 +192,8 @@ function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!email.trim() || !password) {
-      alert('Please enter an email and password.');
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
+      alert('Please complete all registration fields.');
       return;
     }
 
@@ -184,7 +209,7 @@ function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
 
     try {
       setIsSubmitting(true);
-      await createAdminAccount(email, password);
+      await createAdminAccount({ firstName, lastName, email, password });
       alert('Admin account created successfully. Please sign in.');
       onCreated();
     } catch (error) {
@@ -197,6 +222,15 @@ function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
   return (
     <div className="login-page">
       <div className="login-card">
+        <button
+          type="button"
+          className="registration-close-button"
+          onClick={onSwitchToLogin}
+          aria-label="Back to login"
+          title="Back to login"
+        >
+          ×
+        </button>
         <div className="admin-logo">
           <div className="admin-logo-icon">▦</div>
           <h1>Create Admin</h1>
@@ -204,6 +238,28 @@ function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
         </div>
 
         <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>First Name</label>
+            <input
+              type="text"
+              placeholder="Enter first name"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Last Name</label>
+            <input
+              type="text"
+              placeholder="Enter last name"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+              required
+            />
+          </div>
+
           <div className="form-group">
             <label>Admin Email</label>
             <input
@@ -395,6 +451,7 @@ function AdminLayout({
   setActivePage,
   onLogout,
   adminProfile,
+  onProfileUpdated,
 }) {
   return (
     <div className="admin-layout">
@@ -423,6 +480,13 @@ function AdminLayout({
           )}
 
           {activePage === 'Map' && <MapPage />}
+
+          {activePage === 'Profile Settings' && (
+            <ProfileSettingsPage
+              adminProfile={adminProfile}
+              onProfileUpdated={onProfileUpdated}
+            />
+          )}
 
         </div>
 
@@ -462,6 +526,10 @@ function Sidebar({
     {
       name: 'Map',
       icon: '⌖',
+    },
+    {
+      name: 'Profile Settings',
+      icon: '⚙',
     },
   ];
 
@@ -591,13 +659,159 @@ function Topbar({ activePage, adminProfile }) {
    DASHBOARD
 ============================================================ */
 
+function ProfileSettingsPage({ adminProfile, onProfileUpdated }) {
+  const [firstName, setFirstName] = useState(adminProfile.firstName || '');
+  const [lastName, setLastName] = useState(adminProfile.lastName || '');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setFirstName(adminProfile.firstName || '');
+    setLastName(adminProfile.lastName || '');
+  }, [adminProfile.firstName, adminProfile.lastName]);
+
+  const fullName = `${adminProfile.firstName || 'Admin'} ${adminProfile.lastName || 'User'}`.trim();
+  const initials = `${(adminProfile.firstName || 'A').charAt(0)}${(adminProfile.lastName || 'U').charAt(0)}`.toUpperCase();
+  const email = adminProfile.email || auth.currentUser?.email || 'Not available';
+  const fields = [
+    { label: 'First name', value: adminProfile.firstName || 'Not available' },
+    { label: 'Last name', value: adminProfile.lastName || 'Not available' },
+    { label: 'Admin ID', value: adminProfile.studentId || 'ADMIN' },
+    { label: 'Email address', value: email },
+    { label: 'Role', value: adminProfile.role || 'admin' },
+  ];
+
+  const handleSaveName = async (event) => {
+    event.preventDefault();
+
+    if (!firstName.trim() || !lastName.trim()) {
+      alert('Please enter both a first name and last name.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await updateCurrentAdminName({ firstName, lastName });
+      onProfileUpdated({
+        ...adminProfile,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
+      setIsEditing(false);
+      alert('Admin name updated successfully.');
+    } catch (error) {
+      alert(error.message || 'Failed to update the admin name.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setFirstName(adminProfile.firstName || '');
+    setLastName(adminProfile.lastName || '');
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="module-page">
+      <div className="module-heading">
+        <div>
+          <h1>Profile Settings</h1>
+          <p>Your administrator details from the AskUC database.</p>
+        </div>
+      </div>
+
+      <section className="profile-settings-card">
+        <div className="profile-settings-summary">
+          <div className="profile-settings-avatar">
+            {adminProfile.photoUrl ? (
+              <img src={adminProfile.photoUrl} alt="Admin avatar" className="profile-image" />
+            ) : (
+              initials
+            )}
+          </div>
+          <div>
+            <h3>{fullName}</h3>
+            <p>{email}</p>
+          </div>
+          <span className="profile-live-status">Live from database</span>
+        </div>
+
+        <div className="profile-details-grid">
+          {fields.map((field) => (
+            <div className="profile-detail" key={field.label}>
+              <span>{field.label}</span>
+              <strong>{field.value}</strong>
+            </div>
+          ))}
+        </div>
+
+        {isEditing ? (
+          <form className="profile-name-form" onSubmit={handleSaveName}>
+            <div>
+              <h3>Edit name</h3>
+              <p>This updates the name in your administrator database record.</p>
+            </div>
+
+            <div className="profile-name-fields">
+              <label>
+                First name
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  disabled={isSaving}
+                  required
+                />
+              </label>
+
+              <label>
+                Last name
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  disabled={isSaving}
+                  required
+                />
+              </label>
+            </div>
+
+            <div className="profile-name-actions">
+              <button type="submit" className="primary-button" disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save name'}
+              </button>
+              <button type="button" className="secondary-button" onClick={handleCancelEdit} disabled={isSaving}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="profile-edit-row">
+            <div>
+              <h3>Admin name</h3>
+              <p>Change the name shown on your administrator profile.</p>
+            </div>
+            <button type="button" className="primary-button" onClick={() => setIsEditing(true)}>
+              Edit name
+            </button>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function Dashboard({ setActivePage }) {
   const [studentCount, setStudentCount] = useState(0);
   const [announcementCount, setAnnouncementCount] = useState(0);
   const [faqCount, setFaqCount] = useState(0);
+  const [chatbotQueries, setChatbotQueries] = useState([]);
+  const [navigationSearches, setNavigationSearches] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [loadingFaqs, setLoadingFaqs] = useState(true);
+  const [loadingChatbotQueries, setLoadingChatbotQueries] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -645,6 +859,34 @@ function Dashboard({ setActivePage }) {
     return () => unsubscribe && unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToChatbotQueries(
+      (queries) => {
+        setChatbotQueries(queries);
+        setLoadingChatbotQueries(false);
+      },
+      (error) => {
+        console.error('Failed to load chatbot queries:', error);
+        setChatbotQueries([]);
+        setLoadingChatbotQueries(false);
+      },
+    );
+
+    return () => unsubscribe && unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToNavigationSearches(
+      (searches) => setNavigationSearches(searches),
+      (error) => {
+        console.error('Failed to load navigation searches:', error);
+        setNavigationSearches([]);
+      },
+    );
+
+    return () => unsubscribe && unsubscribe();
+  }, []);
+
   return (
     <div className="dashboard">
 
@@ -675,8 +917,8 @@ function Dashboard({ setActivePage }) {
         <StatCard
           icon="▤"
           title="Chatbot Queries"
-          value="1,000"
-          change="+8%"
+          value={loadingChatbotQueries ? 'Loading...' : String(chatbotQueries.length)}
+          change="Live"
           description="Total student inquiries"
         />
 
@@ -704,16 +946,16 @@ function Dashboard({ setActivePage }) {
 
         <ChartCard
           title="Chatbot Queries"
-          subtitle="Student questions over the past week"
+          subtitle="Live student questions over the past week"
         >
-          <BarChart />
+          <BarChart queries={chatbotQueries} />
         </ChartCard>
 
         <ChartCard
           title="Navigation Searches"
-          subtitle="Campus location searches"
+          subtitle="Live campus route searches over the past week"
         >
-          <LineChart />
+          <LineChart searches={navigationSearches} />
         </ChartCard>
 
       </div>
@@ -806,8 +1048,24 @@ function ChartCard({
    BAR CHART
 ============================================================ */
 
-function BarChart() {
-  const values = [42, 68, 51, 85, 72, 94, 78];
+function BarChart({ queries }) {
+  const today = new Date();
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(today.getDate() - (6 - index));
+    return date;
+  });
+  const values = days.map((day) => {
+    const nextDay = new Date(day);
+    nextDay.setDate(day.getDate() + 1);
+
+    return queries.filter((item) => {
+      const createdAt = item.createdAt?.toDate?.();
+      return createdAt && createdAt >= day && createdAt < nextDay;
+    }).length;
+  });
+  const largestValue = Math.max(...values, 1);
 
   return (
     <div className="bar-chart">
@@ -821,12 +1079,12 @@ function BarChart() {
           <div
             className="bar"
             style={{
-              height: `${value}%`,
+              height: value === 0 ? '0%' : `${Math.max((value / largestValue) * 100, 5)}%`,
             }}
           />
 
           <span>
-            {['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}
+            {days[index].toLocaleDateString('en-US', { weekday: 'narrow' })}
           </span>
 
         </div>
@@ -840,7 +1098,32 @@ function BarChart() {
    LINE CHART
 ============================================================ */
 
-function LineChart() {
+function LineChart({ searches }) {
+  const today = new Date();
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(today.getDate() - (6 - index));
+    return date;
+  });
+  const values = days.map((day) => {
+    const nextDay = new Date(day);
+    nextDay.setDate(day.getDate() + 1);
+
+    return searches.filter((item) => {
+      const createdAt = item.createdAt?.toDate?.();
+      return createdAt && createdAt >= day && createdAt < nextDay;
+    }).length;
+  });
+  const largestValue = Math.max(...values, 1);
+  const points = values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * 500;
+      const y = 150 - (value / largestValue) * 110;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
   return (
     <div className="line-chart">
 
@@ -874,16 +1157,7 @@ function LineChart() {
         />
 
         <polyline
-          points="
-            0,135
-            70,120
-            140,130
-            210,95
-            280,110
-            350,70
-            420,85
-            500,45
-          "
+          points={points}
           fill="none"
           className="chart-line"
         />
@@ -903,7 +1177,7 @@ function RecentAnnouncements({ setActivePage }) {
 
   useEffect(() => {
     const unsubscribe = subscribeToAnnouncements((items) => {
-      setAnnouncements(items.slice(0, 3));
+      setAnnouncements(items.slice(0, 5));
     });
 
     return () => unsubscribe && unsubscribe();

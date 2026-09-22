@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class MapScreen extends StatefulWidget {
@@ -32,11 +36,31 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
+    unawaited(_recordNavigationSearch());
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Route generated from $_startingPoint to $_destination.'),
       ),
     );
+  }
+
+  Future<void> _recordNavigationSearch() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _startingPoint == null || _destination == null) {
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('navigationSearches').add({
+        'userId': user.uid,
+        'startingPoint': _startingPoint,
+        'destination': _destination,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (error) {
+      debugPrint('Failed to record navigation search: $error');
+    }
   }
 
   @override

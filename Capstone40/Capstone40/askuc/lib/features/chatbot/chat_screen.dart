@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -56,6 +60,8 @@ class _ChatScreenState extends State<ChatScreen> {
       _isTyping = true;
     });
 
+    unawaited(_recordChatbotQuery());
+
     _scrollToBottom();
 
     // --------------------------------------------------------------
@@ -81,6 +87,22 @@ class _ChatScreenState extends State<ChatScreen> {
 
       _scrollToBottom();
     });
+  }
+
+  Future<void> _recordChatbotQuery() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('chatbotQueries').add({
+        'userId': user.uid,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (error) {
+      debugPrint('Failed to record chatbot query: $error');
+    }
   }
 
   // ================================================================

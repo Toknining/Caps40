@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import {
   getAuth,
   createUserWithEmailAndPassword,
+  onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
@@ -128,7 +129,7 @@ export async function resetStudentPassword(email) {
   await sendPasswordResetEmail(auth, normalizedEmail);
 }
 
-export async function createAdminAccount(email, password) {
+export async function createAdminAccount({ firstName, lastName, email, password }) {
   const normalizedEmail = email.trim().toLowerCase();
 
   try {
@@ -145,8 +146,8 @@ export async function createAdminAccount(email, password) {
       {
         email: normalizedEmail,
         role: 'admin',
-        firstName: 'Admin',
-        lastName: 'User',
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         studentId: 'ADMIN',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -221,6 +222,40 @@ export function subscribeToFaqCount(callback) {
   return onSnapshot(faqsRef, (snapshot) => {
     callback(snapshot.size);
   });
+}
+
+export function subscribeToChatbotQueries(callback, onError) {
+  const queriesRef = collection(db, 'chatbotQueries');
+
+  return onSnapshot(
+    queriesRef,
+    (snapshot) => {
+      callback(
+        snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })),
+      );
+    },
+    onError,
+  );
+}
+
+export function subscribeToNavigationSearches(callback, onError) {
+  const searchesRef = collection(db, 'navigationSearches');
+
+  return onSnapshot(
+    searchesRef,
+    (snapshot) => {
+      callback(
+        snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })),
+      );
+    },
+    onError,
+  );
 }
 
 export async function getAnnouncements() {
@@ -313,34 +348,69 @@ export async function adminSignIn(email, password, rememberMe = true) {
   }
 }
 
+export function subscribeToAdminAuthState(callback) {
+  return onAuthStateChanged(auth, callback);
+}
+
 export async function getCurrentAdminProfile() {
   const currentUser = auth.currentUser;
 
   if (!currentUser) {
-    return {
-      firstName: 'Admin',
-      lastName: 'User',
-      photoUrl: '',
-    };
+    return buildAdminProfile();
   }
 
   const profileRef = doc(db, 'students', currentUser.uid);
   const profileSnapshot = await getDoc(profileRef);
 
   if (!profileSnapshot.exists()) {
-    return {
-      firstName: currentUser.displayName?.split(' ')[0] || 'Admin',
-      lastName: currentUser.displayName?.split(' ').slice(1).join(' ') || 'User',
-      photoUrl: currentUser.photoURL || '',
-    };
+    return buildAdminProfile({}, currentUser);
   }
 
-  const data = profileSnapshot.data();
+  return buildAdminProfile(profileSnapshot.data(), currentUser);
+}
+
+export function subscribeToCurrentAdminProfile(callback, onError) {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    callback(buildAdminProfile());
+    return () => {};
+  }
+
+  return onSnapshot(
+    doc(db, 'students', currentUser.uid),
+    (profileSnapshot) => {
+      callback(buildAdminProfile(profileSnapshot.data() || {}, currentUser));
+    },
+    onError,
+  );
+}
+
+export async function updateCurrentAdminName({ firstName, lastName }) {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    throw new Error('You must be signed in to update your profile.');
+  }
+
+  await updateDoc(doc(db, 'students', currentUser.uid), {
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+function buildAdminProfile(data = {}, currentUser = null) {
+  const displayName = currentUser?.displayName || '';
+  const [displayFirstName = 'Admin', ...displayLastName] = displayName.split(' ').filter(Boolean);
 
   return {
-    firstName: data.firstName || currentUser.displayName?.split(' ')[0] || 'Admin',
-    lastName: data.lastName || currentUser.displayName?.split(' ').slice(1).join(' ') || 'User',
-    photoUrl: data.photoUrl || currentUser.photoURL || '',
+    firstName: data.firstName || displayFirstName,
+    lastName: data.lastName || displayLastName.join(' ') || 'User',
+    studentId: data.studentId || 'ADMIN',
+    email: data.email || currentUser?.email || 'Not available',
+    role: data.role || 'admin',
+    photoUrl: data.photoUrl || currentUser?.photoURL || '',
   };
 }
 
