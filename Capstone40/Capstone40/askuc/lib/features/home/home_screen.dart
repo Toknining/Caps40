@@ -12,6 +12,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final Set<String> _expandedAnnouncementIds = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -547,67 +549,107 @@ class _HomeScreenState extends State<HomeScreen> {
     final message = (data['message'] ?? '').toString();
     final timeLabel = _formatAnnouncementTime(createdAt);
 
-    return _announcementCard(title, message, timeLabel);
+    return _announcementCard(title, message, timeLabel, item.id);
   }
 
-  Widget _announcementCard(String title, String message, String timeLabel) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFFDDE7EC)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF3FC),
-              borderRadius: BorderRadius.circular(11),
+  Widget _announcementCard(String title, String message, String timeLabel, [String? id]) {
+    final isExpanded = id != null && _expandedAnnouncementIds.contains(id);
+
+    return GestureDetector(
+      onTap: () {
+        if (id == null) return;
+        setState(() {
+          if (_expandedAnnouncementIds.contains(id)) {
+            _expandedAnnouncementIds.clear();
+          } else {
+            _expandedAnnouncementIds
+              ..clear()
+              ..add(id);
+          }
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: const Color(0xFFDDE7EC)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF3FC),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.campaign,
+                color: Color(0xFF0866E8),
+                size: 20,
+              ),
             ),
-            child: const Icon(
-              Icons.campaign,
-              color: Color(0xFF0866E8),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xFF20262D),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            color: Color(0xFF20262D),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (id != null)
+                        Icon(
+                          isExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 16,
+                          color: const Color(0xFF64748B),
+                        ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF8A969E),
-                    fontSize: 9,
-                    height: 1.4,
+                  const SizedBox(height: 4),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    child: Text(
+                      message,
+                      maxLines: isExpanded ? null : 2,
+                      overflow: isExpanded ? null : TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF8A969E),
+                        fontSize: 9,
+                        height: 1.4,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  timeLabel,
-                  style: const TextStyle(color: Color(0xFF9AA5AC), fontSize: 8),
-                ),
-              ],
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          timeLabel,
+                          style: const TextStyle(color: Color(0xFF9AA5AC), fontSize: 8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

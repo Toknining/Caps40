@@ -96,6 +96,7 @@ class AnnouncementsScreen extends StatefulWidget {
 class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   final List<Map<String, dynamic>> _notifications = [];
   Set<String> _readAnnouncementIds = <String>{};
+  final Set<String> _expandedAnnouncementIds = <String>{};
 
   Stream<QuerySnapshot<Map<String, dynamic>>> get _announcementsStream =>
       FirebaseFirestore.instance
@@ -376,6 +377,8 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     required IconData icon,
     required bool unread,
   }) {
+    final isExpanded = _expandedAnnouncementIds.contains(id);
+
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () async {
@@ -388,6 +391,16 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             _readAnnouncementIds.add(id);
           });
         }
+
+        setState(() {
+          if (isExpanded) {
+            _expandedAnnouncementIds.clear();
+          } else {
+            _expandedAnnouncementIds
+              ..clear()
+              ..add(id);
+          }
+        });
       },
       child: Container(
         width: double.infinity,
@@ -451,24 +464,41 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    message,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 11,
-                      height: 1.4,
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    child: Text(
+                      message,
+                      maxLines: isExpanded ? null : 2,
+                      overflow: isExpanded ? null : TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    time,
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          time,
+                          style: const TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ],
                   ),
                 ],
               ),
