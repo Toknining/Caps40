@@ -57,6 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await AuthService.loginStudent(
         email: _emailController.text,
         password: _passwordController.text,
+        rememberMe: _rememberMe,
       );
 
       await AuthService.setRememberMe(_rememberMe);

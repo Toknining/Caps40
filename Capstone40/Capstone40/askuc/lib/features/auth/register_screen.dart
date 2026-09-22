@@ -107,6 +107,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasConfirmValue = _confirmPasswordController.text.isNotEmpty;
+    final bool passwordsMatch = hasConfirmValue &&
+        _passwordController.text == _confirmPasswordController.text;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFC),
 
@@ -338,6 +342,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
+
+                if (hasConfirmValue) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        passwordsMatch ? Icons.check_circle : Icons.error,
+                        size: 16,
+                        color: passwordsMatch
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFDC2626),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        passwordsMatch ? 'Passwords match' : 'Passwords do not match',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: passwordsMatch
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
 
                 const SizedBox(height: 21),
 

@@ -160,72 +160,54 @@ class _AskUCBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
         color: Colors.white,
-
-        border: Border(top: BorderSide(color: Color(0xFFE2E8EC), width: 1)),
-
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(22),
-          topRight: Radius.circular(22),
-        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFE2E8EC), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-
       child: SafeArea(
         top: false,
-
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-
-            children: [
-              // ======================================================
-              // HOME
-              // ======================================================
-              _navItem(
-                context,
-                index: 0,
-                icon: Icons.home_outlined,
-                selectedIcon: Icons.home,
-                label: 'Home',
-              ),
-
-              // ======================================================
-              // MAP
-              // ======================================================
-              _navItem(
-                context,
-                index: 1,
-                icon: Icons.map_outlined,
-                selectedIcon: Icons.map,
-                label: 'Map',
-              ),
-
-              // ======================================================
-              // NOTIFICATIONS
-              // ======================================================
-              _navItem(
-                context,
-                index: 2,
-                icon: Icons.notifications_outlined,
-                selectedIcon: Icons.notifications,
-                label: 'Notifications',
-              ),
-
-              // ======================================================
-              // SETTINGS
-              // ======================================================
-              _navItem(
-                context,
-                index: 3,
-                icon: Icons.settings_outlined,
-                selectedIcon: Icons.settings,
-                label: 'Settings',
-              ),
-            ],
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _navItem(
+              context,
+              index: 0,
+              icon: Icons.home_outlined,
+              selectedIcon: Icons.home,
+              label: 'Home',
+            ),
+            _navItem(
+              context,
+              index: 1,
+              icon: Icons.map_outlined,
+              selectedIcon: Icons.map,
+              label: 'Map',
+            ),
+            _navItem(
+              context,
+              index: 2,
+              icon: Icons.notifications_outlined,
+              selectedIcon: Icons.notifications,
+              label: 'Notifications',
+            ),
+            _navItem(
+              context,
+              index: 3,
+              icon: Icons.settings_outlined,
+              selectedIcon: Icons.settings,
+              label: 'Settings',
+            ),
+          ],
         ),
       ),
     );
@@ -253,15 +235,23 @@ class _AskUCBottomNavigation extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
         width: 82,
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        height: 58,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFEAF3FC) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFD7E8FF) : Colors.transparent,
+            width: 1,
+          ),
         ),
         child: Stack(
           clipBehavior: Clip.none,
+          alignment: Alignment.center,
           children: [
             Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
@@ -269,9 +259,9 @@ class _AskUCBottomNavigation extends StatelessWidget {
                   color: isSelected
                       ? const Color(0xFF0866E8)
                       : const Color(0xFF8A969E),
-                  size: 22,
+                  size: 21,
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   label,
                   maxLines: 1,
@@ -280,8 +270,9 @@ class _AskUCBottomNavigation extends StatelessWidget {
                     color: isSelected
                         ? const Color(0xFF0866E8)
                         : const Color(0xFF8A969E),
-                    fontSize: 8,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    fontSize: 9,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    letterSpacing: 0.1,
                   ),
                 ),
               ],

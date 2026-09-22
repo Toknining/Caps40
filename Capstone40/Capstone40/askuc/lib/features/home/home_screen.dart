@@ -4,8 +4,19 @@ import 'package:flutter/material.dart';
 import '../../app/routes.dart';
 import '../announcements/announcements_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AnnouncementStore.initialize();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -471,14 +482,18 @@ class HomeScreen extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('announcements')
           .orderBy('createdAt', descending: true)
-          .limit(1)
+          .limit(3)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _announcementCard(
-            'Loading latest update...',
-            'Checking the newest campus announcement.',
-            'Now',
+          return Column(
+            children: [
+              _announcementCard(
+                'Loading latest update...',
+                'Checking the newest campus announcements.',
+                'Now',
+              ),
+            ],
           );
         }
 
@@ -490,16 +505,17 @@ class HomeScreen extends StatelessWidget {
           );
         }
 
-        final data = snapshot.data!.docs.first.data();
-        final createdAt = data['createdAt'] is Timestamp
-            ? (data['createdAt'] as Timestamp).toDate()
-            : DateTime.now();
+        final items = snapshot.data!.docs;
 
-        final title = (data['title'] ?? 'Announcement').toString();
-        final message = (data['message'] ?? '').toString();
-        final timeLabel = _formatAnnouncementTime(createdAt);
-
-        return _announcementCard(title, message, timeLabel);
+        return Column(
+          children: [
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _announcementCardFromDoc(item),
+              ),
+          ],
+        );
       },
     );
   }
@@ -519,6 +535,19 @@ class HomeScreen extends StatelessWidget {
     }
 
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+
+  Widget _announcementCardFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> item) {
+    final data = item.data();
+    final createdAt = data['createdAt'] is Timestamp
+        ? (data['createdAt'] as Timestamp).toDate()
+        : DateTime.now();
+
+    final title = (data['title'] ?? 'Announcement').toString();
+    final message = (data['message'] ?? '').toString();
+    final timeLabel = _formatAnnouncementTime(createdAt);
+
+    return _announcementCard(title, message, timeLabel);
   }
 
   Widget _announcementCard(String title, String message, String timeLabel) {

@@ -1,7 +1,23 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class ProfileScreen extends StatelessWidget {
+import '../../services/auth_service.dart';
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Future<Map<String, String>> _loadProfileForUser(User? user) async {
+    if (user == null) {
+      return await AuthService.getCurrentStudentProfile();
+    }
+
+    return await AuthService.getCurrentStudentProfile();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,86 +43,107 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 25),
-        child: Column(
-          children: [
-            // =====================================================
-            // PROFILE HEADER
-            // =====================================================
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: const Color(0xFFDDE7EC)),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 75,
-                    height: 75,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEAF3FC),
-                      shape: BoxShape.circle,
+      body: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, authSnapshot) {
+          final user = authSnapshot.data;
+
+          return FutureBuilder<Map<String, String>>(
+            future: _loadProfileForUser(user),
+            builder: (context, snapshot) {
+              final profile = snapshot.data ?? {
+                'firstName': 'Student',
+                'lastName': 'User',
+                'studentId': 'N/A',
+                'email': 'Loading...',
+              };
+
+              final fullName = '${profile['firstName'] ?? 'Student'} ${profile['lastName'] ?? 'User'}'.trim();
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 25),
+                child: Column(
+                  children: [
+                    // =====================================================
+                    // PROFILE HEADER
+                    // =====================================================
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: const Color(0xFFDDE7EC)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 75,
+                            height: 75,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFEAF3FC),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              color: Color(0xFF0866E8),
+                              size: 40,
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Text(
+                            fullName.isNotEmpty ? fullName : 'Student User',
+                            style: const TextStyle(
+                              color: Color(0xFF20262D),
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          Text(
+                            'Student ID: ${profile['studentId'] ?? 'N/A'}',
+                            style: const TextStyle(color: Color(0xFF8A969E), fontSize: 10),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Color(0xFF0866E8),
-                      size: 40,
+
+                    const SizedBox(height: 20),
+
+                    // =====================================================
+                    // INFORMATION
+                    // =====================================================
+                    _profileItem(
+                      icon: Icons.person_outline,
+                      title: 'Student Name',
+                      value: fullName.isNotEmpty ? fullName : 'Student User',
                     ),
-                  ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
-                  const Text(
-                    'Student Name',
-                    style: TextStyle(
-                      color: Color(0xFF20262D),
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
+                    _profileItem(
+                      icon: Icons.badge_outlined,
+                      title: 'Student ID',
+                      value: profile['studentId'] ?? 'N/A',
                     ),
-                  ),
 
-                  const SizedBox(height: 4),
+                    const SizedBox(height: 10),
 
-                  const Text(
-                    'Student ID: 12345',
-                    style: TextStyle(color: Color(0xFF8A969E), fontSize: 10),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // =====================================================
-            // INFORMATION
-            // =====================================================
-            _profileItem(
-              icon: Icons.person_outline,
-              title: 'Student Name',
-              value: 'Student Name',
-            ),
-
-            const SizedBox(height: 10),
-
-            _profileItem(
-              icon: Icons.badge_outlined,
-              title: 'Student ID',
-              value: '12345',
-            ),
-
-            const SizedBox(height: 10),
-
-            _profileItem(
-              icon: Icons.email_outlined,
-              title: 'Email',
-              value: 'student@example.com',
-            ),
-          ],
-        ),
+                    _profileItem(
+                      icon: Icons.email_outlined,
+                      title: 'Email',
+                      value: profile['email'] ?? 'Not available',
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

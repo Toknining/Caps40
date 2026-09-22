@@ -6,8 +6,21 @@ import '../../services/auth_service.dart';
 import '../profile/profile_screen.dart';
 import '../auth/change_password_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  Future<Map<String, String>> _loadProfileForUser(User? user) async {
+    if (user == null) {
+      return await AuthService.getCurrentStudentProfile();
+    }
+
+    return await AuthService.getCurrentStudentProfile();
+  }
 
   // ================================================================
   // LOGOUT DIALOG
@@ -16,7 +29,7 @@ class SettingsScreen extends StatelessWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.35),
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.white,
@@ -177,7 +190,31 @@ class SettingsScreen extends StatelessWidget {
               // ====================================================
               // STUDENT ACCOUNT
               // ====================================================
-              _accountCard(),
+              StreamBuilder<User?>(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                builder: (context, authSnapshot) {
+                  final user = authSnapshot.data;
+
+                  return FutureBuilder<Map<String, String>>(
+                    future: _loadProfileForUser(user),
+                    builder: (context, snapshot) {
+                      final profile = snapshot.data ?? {
+                        'firstName': 'Student',
+                        'lastName': 'User',
+                        'studentId': 'N/A',
+                        'email': 'Loading...',
+                      };
+
+                      return _accountCard(
+                        firstName: profile['firstName'] ?? 'Student',
+                        lastName: profile['lastName'] ?? 'User',
+                        studentId: profile['studentId'] ?? 'N/A',
+                        email: profile['email'] ?? 'Not available',
+                      );
+                    },
+                  );
+                },
+              ),
 
               const SizedBox(height: 20),
 
@@ -290,7 +327,14 @@ class SettingsScreen extends StatelessWidget {
   // STUDENT ACCOUNT CARD
   // ================================================================
 
-  Widget _accountCard() {
+  Widget _accountCard({
+    required String firstName,
+    required String lastName,
+    required String studentId,
+    required String email,
+  }) {
+    final fullName = '$firstName $lastName'.trim();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -313,24 +357,31 @@ class SettingsScreen extends StatelessWidget {
 
           const SizedBox(width: 13),
 
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Student Name',
-                  style: TextStyle(
+                  fullName.isNotEmpty ? fullName : 'Student User',
+                  style: const TextStyle(
                     color: Color(0xFF20262D),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
 
-                SizedBox(height: 4),
+                const SizedBox(height: 2),
 
                 Text(
-                  'Student ID: 12345',
-                  style: TextStyle(color: Color(0xFF8A969E), fontSize: 10),
+                  email,
+                  style: const TextStyle(color: Color(0xFF8A969E), fontSize: 10),
+                ),
+
+                const SizedBox(height: 2),
+
+                Text(
+                  'Student ID: $studentId',
+                  style: const TextStyle(color: Color(0xFF8A969E), fontSize: 10),
                 ),
               ],
             ),

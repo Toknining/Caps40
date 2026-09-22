@@ -18,11 +18,16 @@ class AuthService {
   static Future<UserCredential> loginStudent({
     required String email,
     required String password,
+    required bool rememberMe,
   }) async {
     final normalizedIdentifier = normalizeLoginIdentifier(email);
     final trimmedEmail = normalizedIdentifier.contains('@')
         ? normalizedIdentifier.toLowerCase()
         : normalizedIdentifier;
+
+    await FirebaseAuth.instance.setPersistence(
+      rememberMe ? Persistence.LOCAL : Persistence.NONE,
+    );
 
     if (trimmedEmail.contains('@')) {
       return FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -143,5 +148,74 @@ class AuthService {
   static Future<void> clearRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(rememberMeKey, false);
+  }
+
+  static Future<Map<String, String>> getCurrentStudentProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return {
+        'firstName': 'Student',
+        'lastName': 'User',
+        'studentId': 'N/A',
+        'email': 'Not signed in',
+      };
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection(studentsCollection)
+          .doc(user.uid)
+          .get();
+
+      final data = doc.data() ?? {};
+      final firstName = (data['firstName'] ?? '').toString().trim();
+      final lastName = (data['lastName'] ?? '').toString().trim();
+      final studentId = (data['studentId'] ?? '').toString().trim();
+      final email = (data['email'] ?? user.email ?? '').toString().trim();
+
+      if (doc.exists) {
+        return {
+          'firstName': firstName.isNotEmpty ? firstName : 'Student',
+          'lastName': lastName.isNotEmpty ? lastName : 'User',
+          'studentId': studentId.isNotEmpty ? studentId : 'N/A',
+          'email': email.isNotEmpty ? email : 'Not available',
+        };
+      }
+
+      final byEmailQuery = await FirebaseFirestore.instance
+          .collection(studentsCollection)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (byEmailQuery.docs.isNotEmpty) {
+        final record = byEmailQuery.docs.first.data();
+        final matchedFirstName = (record['firstName'] ?? '').toString().trim();
+        final matchedLastName = (record['lastName'] ?? '').toString().trim();
+        final matchedStudentId = (record['studentId'] ?? '').toString().trim();
+        final matchedEmail = (record['email'] ?? email).toString().trim();
+
+        return {
+          'firstName': matchedFirstName.isNotEmpty ? matchedFirstName : 'Student',
+          'lastName': matchedLastName.isNotEmpty ? matchedLastName : 'User',
+          'studentId': matchedStudentId.isNotEmpty ? matchedStudentId : 'N/A',
+          'email': matchedEmail.isNotEmpty ? matchedEmail : 'Not available',
+        };
+      }
+
+      return {
+        'firstName': firstName.isNotEmpty ? firstName : 'Student',
+        'lastName': lastName.isNotEmpty ? lastName : 'User',
+        'studentId': studentId.isNotEmpty ? studentId : 'N/A',
+        'email': email.isNotEmpty ? email : 'Not available',
+      };
+    } catch (_) {
+      return {
+        'firstName': 'Student',
+        'lastName': 'User',
+        'studentId': 'N/A',
+        'email': 'Not available',
+      };
+    }
   }
 }

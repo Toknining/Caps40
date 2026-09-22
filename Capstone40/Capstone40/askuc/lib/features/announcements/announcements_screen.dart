@@ -15,6 +15,10 @@ class AnnouncementStore {
     return ids;
   }
 
+  static Future<void> initialize() async {
+    await _loadReadIds();
+  }
+
   static Future<Set<String>> getReadIds() async => _loadReadIds();
 
   static Future<void> markRead(String announcementId) async {
@@ -32,9 +36,9 @@ class AnnouncementStore {
 
     final prefs = await SharedPreferences.getInstance();
     final current = (prefs.getStringList(_readIdsKey) ?? const []).toSet();
-    current.addAll(ids);
-    await prefs.setStringList(_readIdsKey, current.toList());
-    readIdsNotifier.value = current;
+    final next = <String>{...current, ...ids.where((id) => id.trim().isNotEmpty)};
+    await prefs.setStringList(_readIdsKey, next.toList());
+    readIdsNotifier.value = next;
   }
 
   static Future<void> clearReadIds() async {
@@ -102,6 +106,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   @override
   void initState() {
     super.initState();
+    AnnouncementStore.initialize();
     _loadReadAnnouncementIds();
   }
 
@@ -128,9 +133,14 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   }
 
   Future<void> _markAllAsRead() async {
-    final unreadIds = _notifications
-        .where((notification) => notification['unread'] == true)
-        .map((notification) => notification['id'].toString())
+    final snapshot = await FirebaseFirestore.instance
+        .collection('announcements')
+        .orderBy('createdAt', descending: true)
+        .get();
+
+    final unreadIds = snapshot.docs
+        .map((doc) => doc.id)
+        .where((id) => !_readAnnouncementIds.contains(id))
         .toList();
 
     if (unreadIds.isEmpty) {
@@ -143,11 +153,18 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       return;
     }
 
+    final updatedReadIds = Set<String>.from(_readAnnouncementIds)..addAll(unreadIds);
+
     setState(() {
-      for (final notification in _notifications) {
-        notification['unread'] = false;
-      }
-      _readAnnouncementIds.addAll(unreadIds);
+      _readAnnouncementIds = updatedReadIds;
+      _notifications
+        ..clear()
+        ..addAll(snapshot.docs.map((doc) {
+          final item = AnnouncementMapper.fromMap(doc.data());
+          item['id'] = doc.id;
+          item['unread'] = false;
+          return item;
+        }).toList());
     });
   }
 

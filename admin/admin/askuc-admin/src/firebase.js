@@ -7,6 +7,9 @@ import {
   signOut,
   updateEmail,
   updatePassword,
+  setPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -267,10 +270,15 @@ export async function deleteFaq(id) {
   await deleteDoc(doc(db, 'faqs', id));
 }
 
-export async function adminSignIn(email, password) {
+export async function adminSignIn(email, password, rememberMe = true) {
   const normalizedEmail = email.trim().toLowerCase();
 
   try {
+    await setPersistence(
+      auth,
+      rememberMe ? browserLocalPersistence : inMemoryPersistence,
+    );
+
     const userCredential = await signInWithEmailAndPassword(
       auth,
       normalizedEmail,

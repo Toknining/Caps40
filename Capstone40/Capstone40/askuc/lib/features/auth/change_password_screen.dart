@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -30,16 +31,68 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  void _changePassword() {
+  Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password changed successfully.')),
-    );
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No active user found. Please sign in again.')),
+      );
+      return;
+    }
 
-    Navigator.pop(context);
+    final currentPassword = _currentPasswordController.text.trim();
+    final newPassword = _newPasswordController.text.trim();
+
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(newPassword);
+
+      if (!mounted) return;
+
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password changed successfully.')),
+      );
+
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      String message = 'Unable to change password. Please try again.';
+
+      if (e.code == 'wrong-password') {
+        message = 'Current password is incorrect.';
+      } else if (e.code == 'requires-recent-login') {
+        message = 'Please sign in again before changing your password.';
+      } else if (e.code == 'weak-password') {
+        message = 'Please use a stronger password.';
+      } else if (e.code == 'invalid-credential') {
+        message = 'Your current password is invalid.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to change password: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -198,8 +251,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           return 'Passwords do not match';
         }
 
-        if (!confirm && label == 'New Password' && value.length < 6) {
-          return 'Password must be at least 6 characters';
+        if (!confirm && label == 'New Password') {
+          if (value.length < 6) {
+            return 'Password must be at least 6 characters';
+          }
+
+          if (value == _currentPasswordController.text.trim() &&
+              _currentPasswordController.text.trim().isNotEmpty) {
+            return 'New password must be different from your current password';
+          }
         }
 
         return null;

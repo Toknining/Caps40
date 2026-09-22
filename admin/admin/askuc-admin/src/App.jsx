@@ -26,16 +26,14 @@ import {
 } from './firebase';
 
 function App() {
-  const [loading, setLoading] = useState(true);
   const [hasAdminAccount, setHasAdminAccount] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [loggedIn, setLoggedIn] = useState(() => {
     const rememberEnabled = localStorage.getItem('askuc_remember') === 'true';
     const rememberedLogin =
       rememberEnabled && localStorage.getItem('askuc_logged_in') === 'true';
-    const sessionLogin = sessionStorage.getItem('askuc_logged_in') === 'true';
 
-    return rememberedLogin || sessionLogin;
+    return rememberedLogin;
   });
   const [adminProfile, setAdminProfile] = useState({
     firstName: 'Admin',
@@ -62,19 +60,11 @@ function App() {
       } catch (error) {
         console.error('Could not check admin account status:', error);
         setHasAdminAccount(false);
-      } finally {
-        setLoading(false);
       }
     }
 
     loadAdminStatus();
   }, []);
-
-  useEffect(() => {
-    if (loggedIn) {
-      loadAdminProfile();
-    }
-  }, [loggedIn]);
 
   const handleLogin = async (remember) => {
     const shouldRemember = Boolean(remember);
@@ -82,13 +72,11 @@ function App() {
     if (shouldRemember) {
       localStorage.setItem('askuc_logged_in', 'true');
       localStorage.setItem('askuc_remember', 'true');
-      sessionStorage.setItem('askuc_logged_in', 'true');
     } else {
       localStorage.setItem('askuc_remember', 'false');
       localStorage.removeItem('askuc_logged_in');
       localStorage.removeItem('askuc_admin_email');
       localStorage.removeItem('askuc_admin_password');
-      sessionStorage.setItem('askuc_logged_in', 'true');
     }
 
     setLoggedIn(true);
@@ -96,26 +84,32 @@ function App() {
   };
 
   const handleLogout = async () => {
+    const rememberEnabled = localStorage.getItem('askuc_remember') === 'true';
+
     try {
       await adminSignOut();
     } catch (error) {
       console.warn('Firebase sign-out warning:', error);
     }
 
-    localStorage.removeItem('askuc_logged_in');
-    localStorage.removeItem('askuc_remember');
-    localStorage.removeItem('askuc_admin_email');
-    localStorage.removeItem('askuc_admin_password');
+    if (rememberEnabled) {
+      localStorage.setItem('askuc_logged_in', 'false');
+      localStorage.setItem('askuc_remember', 'true');
+      // Keep stored admin credentials when remember-me is enabled so the form
+      // still shows the saved email and password after logout.
+    } else {
+      localStorage.removeItem('askuc_logged_in');
+      localStorage.removeItem('askuc_remember');
+      localStorage.removeItem('askuc_admin_email');
+      localStorage.removeItem('askuc_admin_password');
+    }
+
     sessionStorage.removeItem('askuc_logged_in');
 
     setAuthMode('login');
     setLoggedIn(false);
     setActivePage('Dashboard');
   };
-
-  if (loading) {
-    return <div className="login-page"><div className="login-card"><p>Loading admin access...</p></div></div>;
-  }
 
   if (!loggedIn && !hasAdminAccount) {
     return (
@@ -284,7 +278,7 @@ function AdminLogin({ onLogin, onSwitchToRegister }) {
     event.preventDefault();
 
     try {
-      const user = await adminSignIn(email, password);
+      const user = await adminSignIn(email, password, remember);
 
       if (user) {
         if (remember) {
@@ -418,7 +412,7 @@ function AdminLayout({
 
         <div className="page-content">
 
-          {activePage === 'Dashboard' && <Dashboard />}
+          {activePage === 'Dashboard' && <Dashboard setActivePage={setActivePage} />}
 
           {activePage === 'Content' && <ContentPage />}
 
@@ -597,7 +591,7 @@ function Topbar({ activePage, adminProfile }) {
    DASHBOARD
 ============================================================ */
 
-function Dashboard() {
+function Dashboard({ setActivePage }) {
   const [studentCount, setStudentCount] = useState(0);
   const [announcementCount, setAnnouncementCount] = useState(0);
   const [faqCount, setFaqCount] = useState(0);
@@ -728,7 +722,7 @@ function Dashboard() {
 
       <div className="bottom-grid">
 
-        <RecentQuestions />
+        <RecentAnnouncements setActivePage={setActivePage} />
 
         <MostSearchedLocations />
 
@@ -904,41 +898,45 @@ function LineChart() {
    RECENT QUESTIONS
 ============================================================ */
 
-function RecentQuestions() {
-  const questions = [
-    'Where is the Registrar office?',
-    'How do I enroll?',
-    'Where is Room 204?',
-    'What are the library hours?',
-  ];
+function RecentAnnouncements({ setActivePage }) {
+  const [announcements, setAnnouncements] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAnnouncements((items) => {
+      setAnnouncements(items.slice(0, 3));
+    });
+
+    return () => unsubscribe && unsubscribe();
+  }, []);
 
   return (
     <div className="table-card">
 
       <div className="table-header">
-        <h3>Most Asked Questions</h3>
+        <h3>Latest Announcements</h3>
 
-        <button>
-          View All
+        <button type="button" onClick={() => setActivePage && setActivePage('Announcements')}>
+          See all
         </button>
       </div>
 
-      <div className="question-list">
+      <div className="announcement-stack">
 
-        {questions.map((question, index) => (
-          <div
-            className="question-row"
-            key={index}
-          >
-
-            <div className="question-number">
-              {index + 1}
-            </div>
-
-            <span>{question}</span>
-
+        {announcements.length === 0 ? (
+          <div className="announcement-stack-item">
+            <span>No announcements yet.</span>
           </div>
-        ))}
+        ) : (
+          announcements.map((announcement, index) => (
+            <div className="announcement-stack-item" key={announcement.id || index}>
+              <div className="question-number">{index + 1}</div>
+              <div className="announcement-mini-copy">
+                <strong>{announcement.title}</strong>
+                <span>{announcement.message}</span>
+              </div>
+            </div>
+          ))
+        )}
 
       </div>
 
