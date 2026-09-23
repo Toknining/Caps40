@@ -56,8 +56,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
       );
 
-      await AuthService.setRememberMe(true);
-
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(

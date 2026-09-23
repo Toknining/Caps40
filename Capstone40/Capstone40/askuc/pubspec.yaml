@@ -23,9 +23,6 @@ dependencies:
   # API communication
   http: ^1.5.0
 
-  # Local storage
-  shared_preferences: ^2.5.5
-
   # State management
   provider: ^6.1.5
 

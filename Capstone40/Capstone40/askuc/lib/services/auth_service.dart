@@ -1,10 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   static const String studentsCollection = 'students';
-  static const String rememberMeKey = 'remember_me';
 
   static String normalizeLoginIdentifier(String value) {
     final trimmed = value.trim();
@@ -17,7 +15,6 @@ class AuthService {
   static Future<UserCredential> loginStudent({
     required String email,
     required String password,
-    required bool rememberMe,
   }) async {
     final normalizedIdentifier = normalizeLoginIdentifier(email);
     final trimmedEmail = normalizedIdentifier.contains('@')
@@ -25,7 +22,7 @@ class AuthService {
         : normalizedIdentifier;
 
     await FirebaseAuth.instance.setPersistence(
-      rememberMe ? Persistence.LOCAL : Persistence.NONE,
+      Persistence.NONE,
     );
 
     if (trimmedEmail.contains('@')) {
@@ -101,6 +98,8 @@ class AuthService {
   }) async {
     final trimmedEmail = email.trim().toLowerCase();
 
+    await FirebaseAuth.instance.setPersistence(Persistence.NONE);
+
     final userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(
           email: trimmedEmail,
@@ -124,24 +123,7 @@ class AuthService {
         .doc(uid)
         .set(studentData, SetOptions(merge: true));
 
-    await setRememberMe(true);
-
     return userCredential;
-  }
-
-  static Future<void> setRememberMe(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(rememberMeKey, value);
-  }
-
-  static Future<bool> shouldAutoLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(rememberMeKey) ?? false;
-  }
-
-  static Future<void> clearRememberMe() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(rememberMeKey, false);
   }
 
   static Future<Map<String, String>> getCurrentStudentProfile() async {

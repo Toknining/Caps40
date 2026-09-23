@@ -185,7 +185,9 @@ class AnnouncementMapper {
 }
 
 class AnnouncementsScreen extends StatefulWidget {
-  const AnnouncementsScreen({super.key});
+  const AnnouncementsScreen({super.key, this.onExit});
+
+  final VoidCallback? onExit;
 
   @override
   State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
@@ -279,7 +281,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: widget.onExit ?? () => Navigator.pop(context),
           icon: const Icon(Icons.close_rounded, color: Color(0xFF20262D)),
           tooltip: 'Back',
         ),

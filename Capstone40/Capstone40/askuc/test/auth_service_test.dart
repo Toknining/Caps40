@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:askuc/features/announcements/announcements_screen.dart';
 import 'package:askuc/services/auth_service.dart';
@@ -54,27 +53,6 @@ void main() {
       expect(AuthService.normalizeLoginIdentifier(' 20240123 '), '20240123');
       expect(AuthService.normalizeLoginIdentifier(' Jane.Doe@School.edu '),
           'jane.doe@school.edu');
-    });
-
-    test('remember me persists and clears correctly', () async {
-      SharedPreferences.setMockInitialValues({});
-
-      await AuthService.setRememberMe(true);
-      expect(await AuthService.shouldAutoLogin(), isTrue);
-
-      await AuthService.setRememberMe(false);
-      expect(await AuthService.shouldAutoLogin(), isFalse);
-    });
-
-    test('announcement read tracking updates reactively', () async {
-      SharedPreferences.setMockInitialValues({});
-      await AnnouncementStore.clearReadIds();
-
-      await AnnouncementStore.markRead('ann-1');
-      expect(AnnouncementStore.readIdsNotifier.value.contains('ann-1'), isTrue);
-
-      await AnnouncementStore.clearReadIds();
-      expect(AnnouncementStore.readIdsNotifier.value, isEmpty);
     });
 
     test('announcement data is mapped correctly from Firestore', () {

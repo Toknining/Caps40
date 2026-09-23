@@ -117,7 +117,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onPressed: () async {
                           Navigator.pop(dialogContext);
 
-                          await AuthService.clearRememberMe();
                           await FirebaseAuth.instance.signOut();
 
                           if (!context.mounted) return;

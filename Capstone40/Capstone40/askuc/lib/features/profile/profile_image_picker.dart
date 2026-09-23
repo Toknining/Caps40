@@ -1,16 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../services/auth_service.dart';
 
 class ProfileImagePicker extends StatefulWidget {
-  const ProfileImagePicker({
-    super.key,
-    this.photoUrl,
-    this.onUpdated,
-  });
+  const ProfileImagePicker({super.key, this.photoUrl, this.onUpdated});
 
   final String? photoUrl;
   final VoidCallback? onUpdated;
@@ -21,13 +19,16 @@ class ProfileImagePicker extends StatefulWidget {
 
 class _ProfileImagePickerState extends State<ProfileImagePicker> {
   bool _isUploading = false;
+  Uint8List? _selectedImageBytes;
 
   Future<void> _pickAndUploadImage() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be signed in to update your profile image.')),
+        const SnackBar(
+          content: Text('You must be signed in to update your profile image.'),
+        ),
       );
       return;
     }
@@ -35,9 +36,9 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 80,
-      maxWidth: 1200,
-      maxHeight: 1200,
+      imageQuality: 50,
+      maxWidth: 512,
+      maxHeight: 512,
     );
 
     if (pickedFile == null) {
@@ -50,15 +51,22 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
 
     try {
       final imageBytes = await pickedFile.readAsBytes();
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('student_profiles')
-          .child('${user.uid}.jpg');
+      if (!mounted) return;
 
-      await storageRef.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
-      final downloadUrl = await storageRef.getDownloadURL();
+      if (imageBytes.lengthInBytes > 600 * 1024) {
+        throw StateError('Please choose a smaller image.');
+      }
 
-      await AuthService.updateStudentPhotoUrl(downloadUrl);
+      setState(() {
+        _selectedImageBytes = imageBytes;
+      });
+
+      // A compressed image is stored with the signed-in user's Firestore
+      // profile. This keeps the picture tied to the account and avoids a
+      // Firebase Storage upload remaining in progress when Storage is not set
+      // up for the project.
+      final photoDataUrl = 'data:image/jpeg;base64,${base64Encode(imageBytes)}';
+      await AuthService.updateStudentPhotoUrl(photoDataUrl);
 
       if (!mounted) return;
 
@@ -67,11 +75,17 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
       );
 
       widget.onUpdated?.call();
+    } on FirebaseException catch (error) {
+      if (!mounted) return;
+      final message = 'Failed to save image: ${error.message ?? error.code}';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload image: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to upload image: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -104,33 +118,18 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 ),
               ],
             ),
-            child: hasImage
+            child: _selectedImageBytes != null
                 ? ClipOval(
-                    child: Image.network(
-                      widget.photoUrl!,
+                    child: Image.memory(
+                      _selectedImageBytes!,
                       fit: BoxFit.cover,
                       width: 80,
                       height: 80,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.person,
-                          color: Color(0xFF0866E8),
-                          size: 38,
-                        );
-                      },
                     ),
                   )
-                : const Icon(
-                    Icons.person,
-                    color: Color(0xFF0866E8),
-                    size: 38,
-                  ),
+                : hasImage
+                ? _savedProfileImage(widget.photoUrl!)
+                : const Icon(Icons.person, color: Color(0xFF0866E8), size: 38),
           ),
           Positioned(
             right: 0,
@@ -150,14 +149,40 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Icon(
-                      Icons.camera_alt,
-                      color: Colors.white,
-                      size: 14,
-                    ),
+                  : const Icon(Icons.camera_alt, color: Colors.white, size: 14),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _savedProfileImage(String photoUrl) {
+    if (photoUrl.startsWith('data:image/')) {
+      try {
+        final encodedImage = photoUrl.split(',').last;
+        return ClipOval(
+          child: Image.memory(
+            base64Decode(encodedImage),
+            fit: BoxFit.cover,
+            width: 80,
+            height: 80,
+          ),
+        );
+      } catch (_) {
+        return const Icon(Icons.person, color: Color(0xFF0866E8), size: 38);
+      }
+    }
+
+    return ClipOval(
+      child: Image.network(
+        photoUrl,
+        fit: BoxFit.cover,
+        width: 80,
+        height: 80,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(Icons.person, color: Color(0xFF0866E8), size: 38);
+        },
       ),
     );
   }

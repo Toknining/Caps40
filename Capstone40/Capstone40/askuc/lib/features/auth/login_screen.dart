@@ -18,23 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
-  bool _rememberMe = false;
   bool _isSubmitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadRememberMePreference();
-  }
-
-  Future<void> _loadRememberMePreference() async {
-    final rememberMe = await AuthService.shouldAutoLogin();
-    if (mounted) {
-      setState(() {
-        _rememberMe = rememberMe;
-      });
-    }
-  }
 
   @override
   void dispose() {
@@ -57,10 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await AuthService.loginStudent(
         email: _emailController.text,
         password: _passwordController.text,
-        rememberMe: _rememberMe,
       );
-
-      await AuthService.setRememberMe(_rememberMe);
 
       if (!mounted) return;
 
@@ -348,33 +329,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // ==================================================
-                // REMEMBER ME
-                // ==================================================
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _rememberMe,
-                      activeColor: const Color(0xFF0866E8),
-                      onChanged: (value) {
-                        setState(() {
-                          _rememberMe = value ?? false;
-                        });
-                      },
-                    ),
-                    const Text(
-                      'Remember me',
-                      style: TextStyle(
-                        color: Color(0xFF34454F),
-                        fontSize: 11,
-                        fontStyle: FontStyle.normal,
-                      ),
-                    ),
-                  ],
                 ),
 
                 const SizedBox(height: 12),

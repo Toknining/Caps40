@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   adminSignIn,
   adminSignOut,
@@ -30,16 +30,14 @@ import {
   updateStudentAccount,
 } from './firebase';
 
+const adminRememberKey = 'askuc_admin_remember_me';
+const adminEmailKey = 'askuc_admin_email';
+const adminPasswordKey = 'askuc_admin_password';
+
 function App() {
   const [hasAdminAccount, setHasAdminAccount] = useState(false);
   const [authMode, setAuthMode] = useState('login');
-  const [loggedIn, setLoggedIn] = useState(() => {
-    const rememberEnabled = localStorage.getItem('askuc_remember') === 'true';
-    const rememberedLogin =
-      rememberEnabled && localStorage.getItem('askuc_logged_in') === 'true';
-
-    return rememberedLogin;
-  });
+  const [loggedIn, setLoggedIn] = useState(false);
   const [adminProfile, setAdminProfile] = useState({
     firstName: 'Admin',
     lastName: 'User',
@@ -48,6 +46,8 @@ function App() {
 
   const [activePage, setActivePage] = useState('Dashboard');
   const [adminUid, setAdminUid] = useState(() => auth.currentUser?.uid ?? null);
+  const [authReady, setAuthReady] = useState(false);
+  const rememberRestoreAttempted = useRef(false);
 
   const loadAdminProfile = async () => {
     try {
@@ -75,6 +75,46 @@ function App() {
   useEffect(() => {
     return subscribeToAdminAuthState((user) => {
       setAdminUid(user?.uid ?? null);
+
+      const shouldRestoreSession =
+        user != null && localStorage.getItem(adminRememberKey) === 'true';
+
+      if (shouldRestoreSession) {
+        setLoggedIn(true);
+        setAuthReady(true);
+        loadAdminProfile();
+        return;
+      }
+
+      const savedEmail = localStorage.getItem(adminEmailKey);
+      const savedPassword = localStorage.getItem(adminPasswordKey);
+      const shouldAutoSignIn =
+        user == null &&
+        localStorage.getItem(adminRememberKey) === 'true' &&
+        Boolean(savedEmail && savedPassword);
+
+      if (shouldAutoSignIn && !rememberRestoreAttempted.current) {
+        rememberRestoreAttempted.current = true;
+
+        adminSignIn(savedEmail, savedPassword, true)
+            .then(() => {
+              setLoggedIn(true);
+              loadAdminProfile();
+            })
+            .catch((error) => {
+              console.warn('Unable to restore remembered admin session:', error);
+              setLoggedIn(false);
+            })
+            .finally(() => setAuthReady(true));
+        return;
+      }
+
+      if (rememberRestoreAttempted.current && user == null) {
+        return;
+      }
+
+      setLoggedIn(false);
+      setAuthReady(true);
     });
   }, []);
 
@@ -90,16 +130,12 @@ function App() {
   }, [loggedIn, adminUid]);
 
   const handleLogin = async (remember) => {
-    const shouldRemember = Boolean(remember);
-
-    if (shouldRemember) {
-      localStorage.setItem('askuc_logged_in', 'true');
-      localStorage.setItem('askuc_remember', 'true');
+    if (remember) {
+      localStorage.setItem(adminRememberKey, 'true');
     } else {
-      localStorage.setItem('askuc_remember', 'false');
-      localStorage.removeItem('askuc_logged_in');
-      localStorage.removeItem('askuc_admin_email');
-      localStorage.removeItem('askuc_admin_password');
+      localStorage.removeItem(adminRememberKey);
+      localStorage.removeItem(adminEmailKey);
+      localStorage.removeItem(adminPasswordKey);
     }
 
     setLoggedIn(true);
@@ -107,32 +143,24 @@ function App() {
   };
 
   const handleLogout = async () => {
-    const rememberEnabled = localStorage.getItem('askuc_remember') === 'true';
-
     try {
       await adminSignOut();
     } catch (error) {
       console.warn('Firebase sign-out warning:', error);
     }
 
-    if (rememberEnabled) {
-      localStorage.setItem('askuc_logged_in', 'false');
-      localStorage.setItem('askuc_remember', 'true');
-      // Keep stored admin credentials when remember-me is enabled so the form
-      // still shows the saved email and password after logout.
-    } else {
-      localStorage.removeItem('askuc_logged_in');
-      localStorage.removeItem('askuc_remember');
-      localStorage.removeItem('askuc_admin_email');
-      localStorage.removeItem('askuc_admin_password');
-    }
-
-    sessionStorage.removeItem('askuc_logged_in');
+    localStorage.removeItem(adminRememberKey);
+    localStorage.removeItem(adminEmailKey);
+    localStorage.removeItem(adminPasswordKey);
 
     setAuthMode('login');
     setLoggedIn(false);
     setActivePage('Dashboard');
   };
+
+  if (!authReady) {
+    return null;
+  }
 
   if (!loggedIn && !hasAdminAccount) {
     return (
@@ -318,35 +346,31 @@ function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
 ============================================================ */
 
 function AdminLogin({ onLogin, onSwitchToRegister }) {
-  const [email, setEmail] = useState(() => {
-    const rememberEnabled = localStorage.getItem('askuc_remember') === 'true';
-    return rememberEnabled ? (localStorage.getItem('askuc_admin_email') ?? '') : '';
-  });
-  const [password, setPassword] = useState(() => {
-    const rememberEnabled = localStorage.getItem('askuc_remember') === 'true';
-    return rememberEnabled ? (localStorage.getItem('askuc_admin_password') ?? '') : '';
-  });
+  const [email, setEmail] = useState(() => localStorage.getItem(adminEmailKey) ?? '');
+  const [password, setPassword] = useState(() => localStorage.getItem(adminPasswordKey) ?? '');
   const [remember, setRemember] = useState(() => {
-    return localStorage.getItem('askuc_remember') === 'true';
+    return localStorage.getItem(adminRememberKey) === 'true';
   });
 
   const handleLogin = async (event) => {
     event.preventDefault();
 
+    if (remember) {
+      // Save before Firebase signs in so the auth-restoration callback can
+      // reliably recognize this session after a page refresh.
+      localStorage.setItem(adminRememberKey, 'true');
+      localStorage.setItem(adminEmailKey, email);
+      localStorage.setItem(adminPasswordKey, password);
+    } else {
+      localStorage.removeItem(adminRememberKey);
+      localStorage.removeItem(adminEmailKey);
+      localStorage.removeItem(adminPasswordKey);
+    }
+
     try {
       const user = await adminSignIn(email, password, remember);
 
       if (user) {
-        if (remember) {
-          localStorage.setItem('askuc_admin_email', email);
-          localStorage.setItem('askuc_admin_password', password);
-          localStorage.setItem('askuc_remember', 'true');
-        } else {
-          localStorage.removeItem('askuc_admin_email');
-          localStorage.removeItem('askuc_admin_password');
-          localStorage.setItem('askuc_remember', 'false');
-        }
-
         onLogin(remember);
       }
     } catch (error) {
@@ -373,6 +397,7 @@ function AdminLogin({ onLogin, onSwitchToRegister }) {
               type="email"
               placeholder="admin@university.edu"
               value={email}
+              autoComplete="username"
               onChange={(event) => setEmail(event.target.value)}
               required
             />
@@ -385,6 +410,7 @@ function AdminLogin({ onLogin, onSwitchToRegister }) {
               type="password"
               placeholder="Enter password"
               value={password}
+              autoComplete="current-password"
               onChange={(event) => setPassword(event.target.value)}
               required
             />
@@ -396,9 +422,7 @@ function AdminLogin({ onLogin, onSwitchToRegister }) {
               <input
                 type="checkbox"
                 checked={remember}
-                onChange={(event) =>
-                  setRemember(event.target.checked)
-                }
+                onChange={(event) => setRemember(event.target.checked)}
               />
 
               <span>Remember me</span>

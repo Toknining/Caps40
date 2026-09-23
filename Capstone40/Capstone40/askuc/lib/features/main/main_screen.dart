@@ -22,16 +22,18 @@ class _MainScreenState extends State<MainScreen>
   late AnimationController _chatbotController;
   late Animation<double> _chatbotAnimation;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    MapScreen(),
-    AnnouncementsScreen(),
-    SettingsScreen(),
-  ];
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+
+    _screens = [
+      const HomeScreen(),
+      const MapScreen(),
+      AnnouncementsScreen(onExit: () => _changeTab(0)),
+      const SettingsScreen(),
+    ];
 
     // ============================================================
     // CHATBOT FLOATING ANIMATION
