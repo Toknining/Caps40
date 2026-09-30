@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   adminSignIn,
   adminSignOut,
   auth,
   checkForAdminAccount,
-  countStudents,
   createAdminAccount,
   createAnnouncement,
   createFaq,
@@ -16,6 +15,7 @@ import {
   getCurrentAdminProfile,
   getFaqs,
   getStudents,
+  isAdminUser,
   resetStudentPassword,
   subscribeToAdminAuthState,
   subscribeToCurrentAdminProfile,
@@ -24,6 +24,7 @@ import {
   subscribeToChatbotQueries,
   subscribeToFaqCount,
   subscribeToNavigationSearches,
+  subscribeToStudentCount,
   updateAnnouncement,
   updateCurrentAdminName,
   updateFaq,
@@ -32,10 +33,12 @@ import {
 
 const adminRememberKey = 'askuc_admin_remember_me';
 const adminEmailKey = 'askuc_admin_email';
-const adminPasswordKey = 'askuc_admin_password';
+// Older versions saved the admin password here; it is now only removed.
+const legacyAdminPasswordKey = 'askuc_admin_password';
 
 function App() {
-  const [hasAdminAccount, setHasAdminAccount] = useState(false);
+  // null until checked, so the registration link doesn't flash on load.
+  const [hasAdminAccount, setHasAdminAccount] = useState(null);
   const [authMode, setAuthMode] = useState('login');
   const [loggedIn, setLoggedIn] = useState(false);
   const [adminProfile, setAdminProfile] = useState({
@@ -47,7 +50,6 @@ function App() {
   const [activePage, setActivePage] = useState('Dashboard');
   const [adminUid, setAdminUid] = useState(() => auth.currentUser?.uid ?? null);
   const [authReady, setAuthReady] = useState(false);
-  const rememberRestoreAttempted = useRef(false);
 
   const loadAdminProfile = async () => {
     try {
@@ -73,48 +75,35 @@ function App() {
   }, []);
 
   useEffect(() => {
-    return subscribeToAdminAuthState((user) => {
+    localStorage.removeItem(legacyAdminPasswordKey);
+
+    // "Remember me" is handled by Firebase: adminSignIn keeps the session in
+    // browser storage only when it is checked, so a refresh restores it here.
+    return subscribeToAdminAuthState(async (user) => {
       setAdminUid(user?.uid ?? null);
 
-      const shouldRestoreSession =
-        user != null && localStorage.getItem(adminRememberKey) === 'true';
-
-      if (shouldRestoreSession) {
-        setLoggedIn(true);
+      if (!user) {
+        setLoggedIn(false);
         setAuthReady(true);
-        loadAdminProfile();
         return;
       }
 
-      const savedEmail = localStorage.getItem(adminEmailKey);
-      const savedPassword = localStorage.getItem(adminPasswordKey);
-      const shouldAutoSignIn =
-        user == null &&
-        localStorage.getItem(adminRememberKey) === 'true' &&
-        Boolean(savedEmail && savedPassword);
+      const isAdmin = await isAdminUser(user.uid).catch((error) => {
+        console.error('Could not verify admin access:', error);
+        return false;
+      });
 
-      if (shouldAutoSignIn && !rememberRestoreAttempted.current) {
-        rememberRestoreAttempted.current = true;
-
-        adminSignIn(savedEmail, savedPassword, true)
-            .then(() => {
-              setLoggedIn(true);
-              loadAdminProfile();
-            })
-            .catch((error) => {
-              console.warn('Unable to restore remembered admin session:', error);
-              setLoggedIn(false);
-            })
-            .finally(() => setAuthReady(true));
+      // Ignore a check that finished after a sign-out or account switch.
+      if (auth.currentUser?.uid !== user.uid) {
         return;
       }
 
-      if (rememberRestoreAttempted.current && user == null) {
-        return;
-      }
-
-      setLoggedIn(false);
+      setLoggedIn(isAdmin);
       setAuthReady(true);
+
+      if (isAdmin) {
+        loadAdminProfile();
+      }
     });
   }, []);
 
@@ -129,29 +118,17 @@ function App() {
     );
   }, [loggedIn, adminUid]);
 
-  const handleLogin = async (remember) => {
-    if (remember) {
-      localStorage.setItem(adminRememberKey, 'true');
-    } else {
-      localStorage.removeItem(adminRememberKey);
-      localStorage.removeItem(adminEmailKey);
-      localStorage.removeItem(adminPasswordKey);
-    }
-
+  const handleLogin = async () => {
     setLoggedIn(true);
     await loadAdminProfile();
   };
 
   const handleLogout = async () => {
     try {
-      await adminSignOut();
+      await adminSignOut(auth);
     } catch (error) {
       console.warn('Firebase sign-out warning:', error);
     }
-
-    localStorage.removeItem(adminRememberKey);
-    localStorage.removeItem(adminEmailKey);
-    localStorage.removeItem(adminPasswordKey);
 
     setAuthMode('login');
     setLoggedIn(false);
@@ -162,25 +139,12 @@ function App() {
     return null;
   }
 
-  if (!loggedIn && !hasAdminAccount) {
-    return (
-      <AuthScreen
-        mode={authMode}
-        setMode={setAuthMode}
-        onCreated={() => {
-          setHasAdminAccount(true);
-          setAuthMode('login');
-        }}
-        onLogin={handleLogin}
-      />
-    );
-  }
-
   if (!loggedIn) {
     return (
       <AuthScreen
         mode={authMode}
         setMode={setAuthMode}
+        canRegister={hasAdminAccount === false}
         onCreated={() => {
           setHasAdminAccount(true);
           setAuthMode('login');
@@ -201,12 +165,17 @@ function App() {
   );
 }
 
-function AuthScreen({ mode, setMode, onCreated, onLogin }) {
-  if (mode === 'register') {
+function AuthScreen({ mode, setMode, canRegister, onCreated, onLogin }) {
+  if (mode === 'register' && canRegister) {
     return <CreateAdminAccount onCreated={onCreated} onSwitchToLogin={() => setMode('login')} />;
   }
 
-  return <AdminLogin onLogin={onLogin} onSwitchToRegister={() => setMode('register')} />;
+  return (
+    <AdminLogin
+      onLogin={onLogin}
+      onSwitchToRegister={canRegister ? () => setMode('register') : null}
+    />
+  );
 }
 
 function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
@@ -347,7 +316,7 @@ function CreateAdminAccount({ onCreated, onSwitchToLogin }) {
 
 function AdminLogin({ onLogin, onSwitchToRegister }) {
   const [email, setEmail] = useState(() => localStorage.getItem(adminEmailKey) ?? '');
-  const [password, setPassword] = useState(() => localStorage.getItem(adminPasswordKey) ?? '');
+  const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(() => {
     return localStorage.getItem(adminRememberKey) === 'true';
   });
@@ -355,23 +324,21 @@ function AdminLogin({ onLogin, onSwitchToRegister }) {
   const handleLogin = async (event) => {
     event.preventDefault();
 
+    // Only the email is saved to pre-fill the form. The session itself is
+    // kept by Firebase, never by storing the password.
     if (remember) {
-      // Save before Firebase signs in so the auth-restoration callback can
-      // reliably recognize this session after a page refresh.
       localStorage.setItem(adminRememberKey, 'true');
       localStorage.setItem(adminEmailKey, email);
-      localStorage.setItem(adminPasswordKey, password);
     } else {
       localStorage.removeItem(adminRememberKey);
       localStorage.removeItem(adminEmailKey);
-      localStorage.removeItem(adminPasswordKey);
     }
 
     try {
       const user = await adminSignIn(email, password, remember);
 
       if (user) {
-        onLogin(remember);
+        onLogin();
       }
     } catch (error) {
       alert(error.message || 'Admin login failed.');
@@ -450,16 +417,18 @@ function AdminLogin({ onLogin, onSwitchToRegister }) {
           University Campus Administration System
         </div>
 
-        <div className="login-footer" style={{ marginTop: 12 }}>
-          <button
-            type="button"
-            className="forgot-button"
-            onClick={onSwitchToRegister}
-            style={{ color: '#0866E8', background: 'transparent', border: 'none', cursor: 'pointer' }}
-          >
-            Create admin account
-          </button>
-        </div>
+        {onSwitchToRegister && (
+          <div className="login-footer" style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className="forgot-button"
+              onClick={onSwitchToRegister}
+              style={{ color: '#0866E8', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              Create admin account
+            </button>
+          </div>
+        )}
 
       </div>
     </div>
@@ -838,31 +807,19 @@ function Dashboard({ setActivePage }) {
   const [loadingChatbotQueries, setLoadingChatbotQueries] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadStudentCount() {
-      try {
-        const count = await countStudents();
-        if (isMounted) {
-          setStudentCount(count);
-        }
-      } catch (error) {
+    const unsubscribe = subscribeToStudentCount(
+      (count) => {
+        setStudentCount(count);
+        setLoadingStudents(false);
+      },
+      (error) => {
         console.error('Failed to load student count:', error);
-        if (isMounted) {
-          setStudentCount(0);
-        }
-      } finally {
-        if (isMounted) {
-          setLoadingStudents(false);
-        }
-      }
-    }
+        setStudentCount(0);
+        setLoadingStudents(false);
+      },
+    );
 
-    loadStudentCount();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => unsubscribe && unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -1551,7 +1508,6 @@ function UsersPage() {
           firstName,
           lastName,
           studentId,
-          email,
         });
 
         if (password.trim()) {
@@ -1604,7 +1560,9 @@ function UsersPage() {
   };
 
   const handleDelete = async (student) => {
-    const confirmed = window.confirm(`Delete student ${student.firstName} ${student.lastName}?`);
+    const confirmed = window.confirm(
+      `Delete student ${student.firstName} ${student.lastName}? They will no longer be able to sign in to the app.`,
+    );
 
     if (!confirmed) {
       return;
@@ -1612,7 +1570,10 @@ function UsersPage() {
 
     try {
       await deleteStudentAccount(student.id);
-      alert('Student deleted successfully.');
+      alert(
+        'Student deleted. They can no longer sign in to the app.\n\n'
+          + 'To reuse their email for a new account, also delete it in Firebase Console > Authentication.',
+      );
       await loadStudents();
       if (editingId === student.id) {
         resetForm();
@@ -1678,6 +1639,9 @@ function UsersPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                readOnly={Boolean(editingId)}
+                title={editingId ? 'The email is the student\'s login and cannot be changed here.' : undefined}
+                style={editingId ? { background: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' } : undefined}
                 required
               />
             </div>

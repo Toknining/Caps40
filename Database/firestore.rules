@@ -1,10 +1,84 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function profilePath(userId) {
+      return /databases/$(database)/documents/students/$(userId);
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(profilePath(request.auth.uid))
+        && get(profilePath(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Student and admin profiles, keyed by Firebase Auth UID.
+    match /students/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+
+      // Admins can list everything. Anyone else must ask for a single result:
+      // logging in with a student ID looks up that student's email before
+      // sign-in, and the admin panel checks whether an admin exists.
+      allow list: if isAdmin() || request.query.limit == 1;
+
+      // Self-registration from the mobile app, and "Add Student" in the admin
+      // panel (which writes as the new student). A removed student's login
+      // cannot recreate its profile, and an admin profile can only be
+      // self-created before the first admin is set up.
+      allow create: if isOwner(userId)
+        && !exists(/databases/$(database)/documents/removedStudents/$(userId))
+        && (request.resource.data.get('role', 'student') == 'student'
+          || (request.resource.data.role == 'admin'
+            && !exists(/databases/$(database)/documents/config/adminSetup)));
+
+      // Students may only change their photo and which announcements they've read.
+      allow update: if isAdmin()
+        || (isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['photoUrl', 'readAnnouncementIds', 'updatedAt']));
+
+      allow delete: if isAdmin();
+    }
+
     match /announcements/{announcementId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null &&
-        get(/databases/$(database)/documents/students/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
+    }
+
+    match /faqs/{faqId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // Usage logs written by the mobile app and charted on the admin dashboard.
+    match /chatbotQueries/{queryId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin();
+    }
+
+    match /navigationSearches/{searchId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin();
+    }
+
+    // Students deleted in the admin panel. Their Firebase login still exists,
+    // so this blocks it from recreating a profile.
+    match /removedStudents/{userId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Created once the first admin exists; closes admin self-registration.
+    match /config/adminSetup {
+      allow get: if true;
+      allow create: if isAdmin();
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService {
   static const String studentsCollection = 'students';
@@ -21,15 +22,16 @@ class AuthService {
         ? normalizedIdentifier.toLowerCase()
         : normalizedIdentifier;
 
-    await FirebaseAuth.instance.setPersistence(
-      Persistence.NONE,
-    );
+    // setPersistence() is web-only; it throws UnimplementedError on Android/iOS.
+    if (kIsWeb) {
+      await FirebaseAuth.instance.setPersistence(Persistence.NONE);
+    }
 
     if (trimmedEmail.contains('@')) {
-      return FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: trimmedEmail,
-        password: password,
-      );
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: trimmedEmail, password: password);
+      await _requireStudentProfile(userCredential.user);
+      return userCredential;
     }
 
     final students = await FirebaseFirestore.instance
@@ -59,8 +61,42 @@ class AuthService {
       email: profileEmail,
       password: password,
     );
+    await _requireStudentProfile(userCredential.user);
 
     return userCredential;
+  }
+
+  // Deleting a student in the admin panel removes their profile, but only a
+  // server can delete their Firebase login, so a login with no profile is
+  // treated as a removed account.
+  static Future<void> _requireStudentProfile(User? user) async {
+    if (user == null) {
+      return;
+    }
+
+    final students = FirebaseFirestore.instance.collection(studentsCollection);
+    final profile = await students.doc(user.uid).get();
+    if (profile.exists) {
+      return;
+    }
+
+    // Older profiles may not use the UID as their document ID.
+    final email = (user.email ?? '').trim().toLowerCase();
+    if (email.isNotEmpty) {
+      final byEmail = await students
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      if (byEmail.docs.isNotEmpty) {
+        return;
+      }
+    }
+
+    await FirebaseAuth.instance.signOut();
+    throw FirebaseAuthException(
+      code: 'student-removed',
+      message: 'This student account has been removed.',
+    );
   }
 
   static Map<String, dynamic> buildStudentProfile({
@@ -98,7 +134,9 @@ class AuthService {
   }) async {
     final trimmedEmail = email.trim().toLowerCase();
 
-    await FirebaseAuth.instance.setPersistence(Persistence.NONE);
+    if (kIsWeb) {
+      await FirebaseAuth.instance.setPersistence(Persistence.NONE);
+    }
 
     final userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(

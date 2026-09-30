@@ -15,12 +15,16 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen>
-    with SingleTickerProviderStateMixin {
+class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
 
   late AnimationController _chatbotController;
   late Animation<double> _chatbotAnimation;
+
+  late AnimationController _chatWindowController;
+  late Animation<double> _chatWindowScale;
+  late Animation<double> _chatWindowFade;
+  bool _isChatOpen = false;
 
   late final List<Widget> _screens;
 
@@ -47,23 +51,59 @@ class _MainScreenState extends State<MainScreen>
     _chatbotAnimation = Tween<double>(begin: 0, end: -7).animate(
       CurvedAnimation(parent: _chatbotController, curve: Curves.easeInOut),
     );
+
+    // ============================================================
+    // CHAT WINDOW POP-UP ANIMATION
+    // ============================================================
+
+    _chatWindowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+      reverseDuration: const Duration(milliseconds: 220),
+    );
+
+    _chatWindowScale = Tween<double>(begin: 0.3, end: 1).animate(
+      CurvedAnimation(
+        parent: _chatWindowController,
+        curve: Curves.easeOutBack,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+
+    _chatWindowFade = CurvedAnimation(
+      parent: _chatWindowController,
+      curve: const Interval(0, 0.6, curve: Curves.easeOut),
+    );
   }
 
   @override
   void dispose() {
     _chatbotController.dispose();
+    _chatWindowController.dispose();
     super.dispose();
   }
 
   // ================================================================
-  // OPEN CHATBOT
+  // OPEN / CLOSE CHATBOT
   // ================================================================
 
   void _openChatbot() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ChatScreen()),
-    );
+    setState(() {
+      _isChatOpen = true;
+    });
+    _chatWindowController.forward();
+  }
+
+  void _closeChatbot() {
+    if (!_isChatOpen) {
+      return;
+    }
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _isChatOpen = false;
+    });
+    _chatWindowController.reverse();
   }
 
   // ================================================================
@@ -78,68 +118,178 @@ class _MainScreenState extends State<MainScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+    return PopScope(
+      canPop: !_isChatOpen,
 
-      // ============================================================
-      // CURRENT SCREEN
-      // ============================================================
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _closeChatbot();
+        }
+      },
 
-      // ============================================================
-      // FLOATING CHATBOT
-      // ============================================================
-      floatingActionButton: AnimatedBuilder(
-        animation: _chatbotAnimation,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
 
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, _chatbotAnimation.value),
-            child: child,
-          );
-        },
+        // ============================================================
+        // CURRENT SCREEN + FLOATING CHAT WINDOW
+        // ============================================================
+        body: Stack(
+          fit: StackFit.expand,
 
-        child: GestureDetector(
-          onTap: _openChatbot,
+          children: [
+            IndexedStack(index: _currentIndex, children: _screens),
 
-          child: Container(
-            width: 62,
-            height: 62,
+            Positioned.fill(child: _chatBarrier()),
 
-            decoration: BoxDecoration(
-              color: const Color(0xFF0866E8),
+            // The chatbot button is hidden while the chat is open, so the
+            // window drops down into its spot above the bottom navigation.
+            Positioned(
+              left: 16,
+              right: 16,
+              top: MediaQuery.paddingOf(context).top + 12,
+              bottom: 12,
 
-              shape: BoxShape.circle,
+              child: _chatWindow(),
+            ),
+          ],
+        ),
 
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
+        // ============================================================
+        // FLOATING CHATBOT
+        // ============================================================
+        floatingActionButton: _isChatOpen ? null : _chatbotButton(),
 
-                  blurRadius: 12,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
-                  offset: const Offset(0, 5),
-                ),
-              ],
+        // ============================================================
+        // CUSTOM ASKUC BOTTOM NAVIGATION
+        // ============================================================
+        bottomNavigationBar: Stack(
+          children: [
+            _AskUCBottomNavigation(
+              selectedIndex: _currentIndex,
+
+              onItemSelected: _changeTab,
             ),
 
-            child: const Icon(
-              Icons.auto_awesome,
-              color: Colors.white,
-              size: 29,
-            ),
+            Positioned.fill(child: _chatBarrier()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ================================================================
+  // CHATBOT BUTTON
+  // ================================================================
+
+  Widget _chatbotButton() {
+    return AnimatedBuilder(
+      animation: _chatbotAnimation,
+
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _chatbotAnimation.value),
+          child: child,
+        );
+      },
+
+      child: GestureDetector(
+        onTap: _openChatbot,
+
+        child: Container(
+          width: 62,
+          height: 62,
+
+          decoration: BoxDecoration(
+            color: const Color(0xFF0866E8),
+
+            shape: BoxShape.circle,
+
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+
+                blurRadius: 12,
+
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+
+          child: const Icon(
+            Icons.auto_awesome,
+            color: Colors.white,
+            size: 29,
           ),
         ),
       ),
+    );
+  }
 
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+  // ================================================================
+  // CHAT WINDOW
+  // ================================================================
 
-      // ============================================================
-      // CUSTOM ASKUC BOTTOM NAVIGATION
-      // ============================================================
-      bottomNavigationBar: _AskUCBottomNavigation(
-        selectedIndex: _currentIndex,
+  // Dims the app behind the chat window; tapping it closes the chat.
+  Widget _chatBarrier() {
+    return AnimatedBuilder(
+      animation: _chatWindowController,
 
-        onItemSelected: _changeTab,
+      builder: (context, _) {
+        if (_chatWindowController.isDismissed) {
+          return const SizedBox.shrink();
+        }
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+
+          onTap: _closeChatbot,
+
+          child: ColoredBox(
+            color: Colors.black.withValues(
+              alpha: 0.25 * _chatWindowFade.value,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Grows out of the chatbot button. It stays mounted (just hidden) after
+  // closing so the conversation is still there when it is opened again.
+  Widget _chatWindow() {
+    return Align(
+      alignment: Alignment.bottomRight,
+
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420, maxHeight: 600),
+
+        child: AnimatedBuilder(
+          animation: _chatWindowController,
+
+          builder: (context, child) {
+            return Visibility(
+              visible: !_chatWindowController.isDismissed,
+              maintainState: true,
+              child: child!,
+            );
+          },
+
+          child: FadeTransition(
+            opacity: _chatWindowFade,
+
+            child: ScaleTransition(
+              scale: _chatWindowScale,
+
+              alignment: Alignment.bottomRight,
+
+              child: SizedBox.expand(
+                child: ChatScreen.floating(onClose: _closeChatbot),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

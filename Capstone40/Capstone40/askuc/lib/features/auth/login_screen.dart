@@ -65,6 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
         message = 'Please enter a valid student ID.';
       } else if (e.code == 'user-disabled') {
         message = 'This account has been disabled.';
+      } else if (e.code == 'student-removed') {
+        message = 'This account has been removed. Please contact the admin.';
       } else if (e.code == 'operation-not-allowed') {
         message =
             'Email/password login is disabled in Firebase. Enable Email/Password in Firebase Console > Authentication > Sign-in method.';

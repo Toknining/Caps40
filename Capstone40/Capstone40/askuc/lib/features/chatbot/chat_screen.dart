@@ -5,7 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({super.key}) : onClose = null;
+
+  // Shows the chat as a floating window instead of a full page. Closing it
+  // calls [onClose] instead of popping the route.
+  const ChatScreen.floating({super.key, required VoidCallback this.onClose});
+
+  final VoidCallback? onClose;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -213,7 +219,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onVerticalDragEnd(DragEndDetails details) {
     if (_dragDistance > 120) {
-      Navigator.pop(context);
+      _exitChat();
     }
 
     _dragDistance = 0;
@@ -223,7 +229,14 @@ class _ChatScreenState extends State<ChatScreen> {
   // EXIT CHAT
   // ================================================================
 
+  bool get _isFloating => widget.onClose != null;
+
   void _exitChat() {
+    if (_isFloating) {
+      widget.onClose!();
+      return;
+    }
+
     Navigator.pop(context);
   }
 
@@ -233,61 +246,77 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final chat = GestureDetector(
+      onVerticalDragUpdate: _onVerticalDragUpdate,
+
+      onVerticalDragEnd: _onVerticalDragEnd,
+
+      child: Column(
+        children: [
+          // ====================================================
+          // SWIPE INDICATOR
+          // ====================================================
+          if (!_isFloating) _swipeIndicator(),
+
+          // ====================================================
+          // HEADER
+          // ====================================================
+          _chatHeader(),
+
+          // ====================================================
+          // MESSAGES
+          // ====================================================
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+
+              itemCount: _messages.length + (_isTyping ? 1 : 0),
+
+              itemBuilder: (context, index) {
+                if (_isTyping && index == _messages.length) {
+                  return _typingIndicator();
+                }
+
+                return _messageBubble(_messages[index]);
+              },
+            ),
+          ),
+
+          // ====================================================
+          // QUICK ACTIONS
+          // ====================================================
+          _quickActions(),
+
+          // ====================================================
+          // INPUT
+          // ====================================================
+          _messageInput(),
+        ],
+      ),
+    );
+
+    if (_isFloating) {
+      return Material(
+        color: const Color(0xFFF8FAFC),
+
+        elevation: 16,
+
+        shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.4),
+
+        borderRadius: BorderRadius.circular(24),
+
+        clipBehavior: Clip.antiAlias,
+
+        child: chat,
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
 
-      body: SafeArea(
-        child: GestureDetector(
-          onVerticalDragUpdate: _onVerticalDragUpdate,
-
-          onVerticalDragEnd: _onVerticalDragEnd,
-
-          child: Column(
-            children: [
-              // ====================================================
-              // SWIPE INDICATOR
-              // ====================================================
-              _swipeIndicator(),
-
-              // ====================================================
-              // HEADER
-              // ====================================================
-              _chatHeader(),
-
-              // ====================================================
-              // MESSAGES
-              // ====================================================
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-
-                  itemCount: _messages.length + (_isTyping ? 1 : 0),
-
-                  itemBuilder: (context, index) {
-                    if (_isTyping && index == _messages.length) {
-                      return _typingIndicator();
-                    }
-
-                    return _messageBubble(_messages[index]);
-                  },
-                ),
-              ),
-
-              // ====================================================
-              // QUICK ACTIONS
-              // ====================================================
-              _quickActions(),
-
-              // ====================================================
-              // INPUT
-              // ====================================================
-              _messageInput(),
-            ],
-          ),
-        ),
-      ),
+      body: SafeArea(child: chat),
     );
   }
 

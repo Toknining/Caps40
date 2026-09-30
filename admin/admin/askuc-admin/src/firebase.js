@@ -1,13 +1,12 @@
-import { initializeApp } from 'firebase/app';
+import { deleteApp, initializeApp } from 'firebase/app';
 import {
   getAuth,
+  initializeAuth,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
-  updateEmail,
-  updatePassword,
   setPersistence,
   browserLocalPersistence,
   inMemoryPersistence,
@@ -18,6 +17,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -42,18 +42,45 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+// Exists once the first admin account is set up. The Firestore rules only
+// allow self-registering as an admin while this document is missing.
+const adminSetupRef = doc(db, 'config', 'adminSetup');
+
 export async function checkForAdminAccount() {
+  const setupSnapshot = await getDoc(adminSetupRef).catch(() => null);
+
+  if (setupSnapshot?.exists()) {
+    return true;
+  }
+
   const usersRef = collection(db, 'students');
-  const q = query(usersRef, where('role', '==', 'admin'));
+  const q = query(usersRef, where('role', '==', 'admin'), limit(1));
   const snapshot = await getDocs(q);
   return !snapshot.empty;
 }
 
-export async function countStudents() {
+async function markAdminSetupComplete() {
+  try {
+    const setupSnapshot = await getDoc(adminSetupRef);
+
+    if (!setupSnapshot.exists()) {
+      await setDoc(adminSetupRef, { createdAt: serverTimestamp() });
+    }
+  } catch (error) {
+    console.warn('Could not mark admin setup as complete:', error);
+  }
+}
+
+export async function isAdminUser(uid) {
+  const profileSnapshot = await getDoc(doc(db, 'students', uid));
+  return profileSnapshot.exists() && profileSnapshot.data().role === 'admin';
+}
+
+export function subscribeToStudentCount(callback, onError) {
   const usersRef = collection(db, 'students');
   const q = query(usersRef, where('role', '==', 'student'));
-  const snapshot = await getDocs(q);
-  return snapshot.size;
+
+  return onSnapshot(q, (snapshot) => callback(snapshot.size), onError);
 }
 
 export async function getStudents() {
@@ -77,44 +104,81 @@ export async function createStudentAccount({
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedStudentId = studentId.trim();
 
-  const userCredential = await createUserWithEmailAndPassword(
-    auth,
-    normalizedEmail,
-    password,
-  );
+  // Creating a user signs that user in on whichever app instance created it.
+  // A throwaway instance keeps the admin's own session signed in.
+  const creatorApp = initializeApp(firebaseConfig, `student-creator-${Date.now()}`);
+  const creatorAuth = initializeAuth(creatorApp, { persistence: inMemoryPersistence });
 
-  const uid = userCredential.user.uid;
+  try {
+    let userCredential;
 
-  await setDoc(
-    doc(db, 'students', uid),
-    {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      studentId: normalizedStudentId,
-      email: normalizedEmail,
-      role: 'student',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+    try {
+      userCredential = await createUserWithEmailAndPassword(
+        creatorAuth,
+        normalizedEmail,
+        password,
+      );
+    } catch (error) {
+      if (error?.code === 'auth/email-already-in-use') {
+        throw new Error(
+          'This email already has a login account, possibly from a deleted student. '
+            + 'Remove it in Firebase Console > Authentication, then try again.',
+        );
+      }
 
-  return userCredential.user;
+      throw error;
+    }
+
+    const user = userCredential.user;
+
+    try {
+      // Written as the new student, the same way the mobile app registers.
+      await setDoc(
+        doc(getFirestore(creatorApp), 'students', user.uid),
+        {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          studentId: normalizedStudentId,
+          email: normalizedEmail,
+          role: 'student',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+    } catch (error) {
+      // Don't leave a login behind that has no student profile.
+      await user.delete().catch(() => undefined);
+      throw error;
+    }
+
+    return user;
+  } finally {
+    await signOut(creatorAuth).catch(() => undefined);
+    await deleteApp(creatorApp).catch(() => undefined);
+  }
 }
 
-export async function updateStudentAccount(id, { firstName, lastName, studentId, email }) {
+// The email is not editable: it is the student's login, and only a server
+// with admin access can change another user's login email.
+export async function updateStudentAccount(id, { firstName, lastName, studentId }) {
   const studentRef = doc(db, 'students', id);
 
   await updateDoc(studentRef, {
     firstName: firstName.trim(),
     lastName: lastName.trim(),
     studentId: studentId.trim(),
-    email: email.trim().toLowerCase(),
     updatedAt: serverTimestamp(),
   });
 }
 
 export async function deleteStudentAccount(id) {
+  // The student's Firebase login can't be deleted from the browser, so record
+  // the removal. The Firestore rules stop that login from recreating a
+  // profile, and the mobile app refuses to sign in without one.
+  await setDoc(doc(db, 'removedStudents', id), { removedAt: serverTimestamp() })
+    .catch((error) => console.warn('Could not record the removed student:', error));
+
   const studentRef = doc(db, 'students', id);
   await deleteDoc(studentRef);
 }
@@ -154,6 +218,10 @@ export async function createAdminAccount({ firstName, lastName, email, password 
       },
       { merge: true },
     );
+
+    await markAdminSetupComplete();
+    // The registration screen asks the new admin to sign in afterwards.
+    await signOut(auth);
 
     return userCredential.user;
   } catch (error) {
@@ -335,6 +403,8 @@ export async function adminSignIn(email, password, rememberMe = true) {
       await signOut(auth).catch(() => undefined);
       throw new Error('This account does not have admin access.');
     }
+
+    await markAdminSetupComplete();
 
     return user;
   } catch (error) {

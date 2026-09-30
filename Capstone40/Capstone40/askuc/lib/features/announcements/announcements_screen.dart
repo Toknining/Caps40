@@ -160,6 +160,7 @@ class AnnouncementMapper {
     return {
       'title': (data['title'] ?? 'Announcement').toString(),
       'message': (data['message'] ?? '').toString(),
+      'createdAt': createdAt,
       'time': _formatTime(createdAt),
       'icon': Icons.campaign,
       'unread': true,
@@ -194,10 +195,6 @@ class AnnouncementsScreen extends StatefulWidget {
 }
 
 class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
-  final List<Map<String, dynamic>> _notifications = [];
-  Set<String> _readAnnouncementIds = <String>{};
-  final Set<String> _expandedAnnouncementIds = <String>{};
-
   Stream<QuerySnapshot<Map<String, dynamic>>> get _announcementsStream =>
       FirebaseFirestore.instance
           .collection('announcements')
@@ -208,27 +205,16 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   void initState() {
     super.initState();
     AnnouncementStore.initialize();
-    _loadReadAnnouncementIds();
   }
 
-  Future<void> _loadReadAnnouncementIds() async {
-    final readIds = await AnnouncementStore.getReadIds();
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _readAnnouncementIds = readIds;
-    });
-  }
-
-  List<Map<String, dynamic>> _mapSnapshotToNotifications(
-    QuerySnapshot<Map<String, dynamic>> snapshot,
+  List<Map<String, dynamic>> _mapDocsToNotifications(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    Set<String> readIds,
   ) {
-    return snapshot.docs.map((doc) {
+    return docs.map((doc) {
       final item = AnnouncementMapper.fromMap(doc.data());
       item['id'] = doc.id;
-      item['unread'] = !_readAnnouncementIds.contains(doc.id);
+      item['unread'] = !readIds.contains(doc.id);
       return item;
     }).toList();
   }
@@ -236,40 +222,15 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   Future<void> _markAllAsRead() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('announcements')
-        .orderBy('createdAt', descending: true)
         .get();
 
+    final readIds = AnnouncementStore.readIdsNotifier.value;
     final unreadIds = snapshot.docs
         .map((doc) => doc.id)
-        .where((id) => !_readAnnouncementIds.contains(id))
+        .where((id) => !readIds.contains(id))
         .toList();
 
-    if (unreadIds.isEmpty) {
-      return;
-    }
-
     await AnnouncementStore.markAllRead(unreadIds);
-
-    if (!mounted) {
-      return;
-    }
-
-    final updatedReadIds = Set<String>.from(_readAnnouncementIds)
-      ..addAll(unreadIds);
-
-    setState(() {
-      _readAnnouncementIds = updatedReadIds;
-      _notifications
-        ..clear()
-        ..addAll(
-          snapshot.docs.map((doc) {
-            final item = AnnouncementMapper.fromMap(doc.data());
-            item['id'] = doc.id;
-            item['unread'] = false;
-            return item;
-          }).toList(),
-        );
-    });
   }
 
   @override
@@ -380,30 +341,41 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                       );
                     }
 
-                    final notifications = snapshot.data == null
-                        ? <Map<String, dynamic>>[]
-                        : _mapSnapshotToNotifications(snapshot.data!);
+                    final docs =
+                        snapshot.data?.docs ??
+                        const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
 
-                    if (notifications.isEmpty) {
+                    if (docs.isEmpty) {
                       return _emptyAnnouncementsState();
                     }
 
-                    return ListView.separated(
-                      padding: EdgeInsets.zero,
-                      itemCount: notifications.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final notification = notifications[index];
+                    return ValueListenableBuilder<Set<String>>(
+                      valueListenable: AnnouncementStore.readIdsNotifier,
+                      builder: (context, readIds, _) {
+                        final notifications = _mapDocsToNotifications(
+                          docs,
+                          readIds,
+                        );
 
-                        return _notificationCard(
-                          context,
-                          id: notification['id']?.toString() ?? '$index',
-                          title: notification['title'],
-                          message: notification['message'],
-                          time: notification['time'],
-                          icon: notification['icon'],
-                          unread: notification['unread'] ?? false,
+                        return ListView.separated(
+                          padding: EdgeInsets.zero,
+                          itemCount: notifications.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final notification = notifications[index];
+
+                            return _notificationCard(
+                              context,
+                              id: notification['id']?.toString() ?? '$index',
+                              title: notification['title'],
+                              message: notification['message'],
+                              createdAt: notification['createdAt'],
+                              time: notification['time'],
+                              icon: notification['icon'],
+                              unread: notification['unread'] ?? false,
+                            );
+                          },
                         );
                       },
                     );
@@ -473,135 +445,277 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     required String id,
     required String title,
     required String message,
+    required DateTime createdAt,
     required String time,
     required IconData icon,
     required bool unread,
   }) {
-    final isExpanded = _expandedAnnouncementIds.contains(id);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: () async {
-        if (unread) {
-          await AnnouncementStore.markRead(id);
-          if (!mounted) {
-            return;
-          }
-          setState(() {
-            _readAnnouncementIds.add(id);
-          });
-        }
-
-        setState(() {
-          if (isExpanded) {
-            _expandedAnnouncementIds.clear();
-          } else {
-            _expandedAnnouncementIds
-              ..clear()
-              ..add(id);
-          }
-        });
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: unread ? const Color(0xFFDBEAFE) : const Color(0xFFE3EBF2),
-            width: unread ? 1.3 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0F172A).withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: unread ? const Color(0xFFDBEAFE) : const Color(0xFFE3EBF2),
+          width: unread ? 1.3 : 1,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF3FC),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: const Color(0xFF0866E8), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => AnnouncementDetailScreen.open(
+            context,
+            id: id,
+            title: title,
+            message: message,
+            createdAt: createdAt,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF3FC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: const Color(0xFF0866E8), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            color: Color(0xFF20262D),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: const TextStyle(
+                                color: Color(0xFF20262D),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
+                          if (unread)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(left: 8),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF0866E8),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        message,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 11,
+                          height: 1.4,
                         ),
                       ),
-                      if (unread)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.only(left: 8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF0866E8),
-                            shape: BoxShape.circle,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              time,
+                              style: const TextStyle(
+                                color: Color(0xFF94A3B8),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
-                        ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 18,
+                            color: Color(0xFF64748B),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeInOut,
-                    child: Text(
-                      message,
-                      maxLines: isExpanded ? null : 2,
-                      overflow: isExpanded ? null : TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 11,
-                        height: 1.4,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==================================================================
+// ANNOUNCEMENT DETAIL
+// ==================================================================
+
+class AnnouncementDetailScreen extends StatelessWidget {
+  const AnnouncementDetailScreen({
+    super.key,
+    required this.title,
+    required this.message,
+    required this.createdAt,
+  });
+
+  final String title;
+  final String message;
+  final DateTime createdAt;
+
+  // Opens the full announcement. Reading it only marks it as read; it stays
+  // in the announcements list so it can be opened again later.
+  static Future<void> open(
+    BuildContext context, {
+    required String id,
+    required String title,
+    required String message,
+    required DateTime createdAt,
+  }) {
+    if (!AnnouncementStore.readIdsNotifier.value.contains(id)) {
+      unawaited(
+        AnnouncementStore.markRead(id).catchError((Object error) {
+          debugPrint('Failed to mark announcement $id as read: $error');
+        }),
+      );
+    }
+
+    return Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AnnouncementDetailScreen(
+          title: title,
+          message: message,
+          createdAt: createdAt,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final localizations = MaterialLocalizations.of(context);
+    final postedAt =
+        '${localizations.formatFullDate(createdAt)} · '
+        '${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(createdAt))}';
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF8FAFC),
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF20262D)),
+          tooltip: 'Back',
+        ),
+        title: const Text(
+          'Announcement',
+          style: TextStyle(
+            color: Color(0xFF20262D),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE3EBF2)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAF3FC),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.campaign,
+                        color: Color(0xFF0866E8),
+                        size: 20,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          time,
-                          style: const TextStyle(
-                            color: Color(0xFF94A3B8),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Color(0xFF20262D),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Text(
+                            postedAt,
+                            style: const TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                      Icon(
-                        isExpanded
-                            ? Icons.keyboard_arrow_up_rounded
-                            : Icons.keyboard_arrow_down_rounded,
-                        size: 18,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: Color(0xFFE3EBF2)),
+                const SizedBox(height: 16),
+                SelectableText(
+                  message.isEmpty ? 'No details were provided.' : message,
+                  style: const TextStyle(
+                    color: Color(0xFF334155),
+                    fontSize: 13,
+                    height: 1.6,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -12,8 +12,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final Set<String> _expandedAnnouncementIds = <String>{};
-
   @override
   void initState() {
     super.initState();
@@ -293,13 +291,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-
-      // ============================================================
-      // FLOATING CHATBOT
-      // ============================================================
-      floatingActionButton: const _FloatingChatbot(),
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -549,191 +540,104 @@ class _HomeScreenState extends State<HomeScreen> {
     final message = (data['message'] ?? '').toString();
     final timeLabel = _formatAnnouncementTime(createdAt);
 
-    return _announcementCard(title, message, timeLabel, item.id);
-  }
-
-  Widget _announcementCard(String title, String message, String timeLabel, [String? id]) {
-    final isExpanded = id != null && _expandedAnnouncementIds.contains(id);
-
-    return GestureDetector(
-      onTap: () {
-        if (id == null) return;
-        setState(() {
-          if (_expandedAnnouncementIds.contains(id)) {
-            _expandedAnnouncementIds.clear();
-          } else {
-            _expandedAnnouncementIds
-              ..clear()
-              ..add(id);
-          }
-        });
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: const Color(0xFFDDE7EC)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF3FC),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Icon(
-                Icons.campaign,
-                color: Color(0xFF0866E8),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: const TextStyle(
-                            color: Color(0xFF20262D),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      if (id != null)
-                        Icon(
-                          isExpanded
-                              ? Icons.keyboard_arrow_up_rounded
-                              : Icons.keyboard_arrow_down_rounded,
-                          size: 16,
-                          color: const Color(0xFF64748B),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeInOut,
-                    child: Text(
-                      message,
-                      maxLines: isExpanded ? null : 2,
-                      overflow: isExpanded ? null : TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF8A969E),
-                        fontSize: 9,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          timeLabel,
-                          style: const TextStyle(color: Color(0xFF9AA5AC), fontSize: 8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    return _announcementCard(
+      title,
+      message,
+      timeLabel,
+      onTap: () => AnnouncementDetailScreen.open(
+        context,
+        id: item.id,
+        title: title,
+        message: message,
+        createdAt: createdAt,
       ),
     );
   }
-}
 
-// ==================================================================
-// FLOATING CHATBOT
-// ==================================================================
-
-class _FloatingChatbot extends StatefulWidget {
-  const _FloatingChatbot();
-
-  @override
-  State<_FloatingChatbot> createState() => _FloatingChatbotState();
-}
-
-class _FloatingChatbotState extends State<_FloatingChatbot>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  late Animation<double> _floatAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      vsync: this,
-
-      duration: const Duration(milliseconds: 1800),
-    )..repeat(reverse: true);
-
-    _floatAnimation = Tween<double>(
-      begin: 0,
-      end: -7,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _floatAnimation,
-
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _floatAnimation.value),
-
-          child: child,
-        );
-      },
-
-      child: GestureDetector(
-        onTap: () {
-          Navigator.pushNamed(context, AppRoutes.chat);
-        },
-
-        child: Container(
-          width: 62,
-          height: 62,
-
-          decoration: BoxDecoration(
-            color: const Color(0xFF0866E8),
-
-            shape: BoxShape.circle,
-
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-
-                blurRadius: 12,
-
-                offset: const Offset(0, 5),
-              ),
-            ],
+  Widget _announcementCard(
+    String title,
+    String message,
+    String timeLabel, {
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: const Color(0xFFDDE7EC)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(15),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(13),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF3FC),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(
+                    Icons.campaign,
+                    color: Color(0xFF0866E8),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: const TextStyle(
+                                color: Color(0xFF20262D),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          if (onTap != null)
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              size: 16,
+                              color: Color(0xFF64748B),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        message,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF8A969E),
+                          fontSize: 9,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        timeLabel,
+                        style: const TextStyle(color: Color(0xFF9AA5AC), fontSize: 8),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-
-          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 29),
         ),
       ),
     );
