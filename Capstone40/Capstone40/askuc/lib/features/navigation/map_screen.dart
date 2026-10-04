@@ -1,342 +1,101 @@
-import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class MapScreen extends StatefulWidget {
+import '../../widgets/tilted_campus_map.dart';
+import 'campus_map_screen.dart';
+import 'pathway_tree.dart';
+
+/// Floor plans shown on the map. width and height must be each image's real
+/// pixel size, or every node lands in the wrong place. Keep every plan at the
+/// same scale (pixels per metre) so walking costs compare fairly across floors.
+const _plans = [
+  FloorPlan(
+    floor: 5,
+    asset: 'assets/floorplans/floor_5.png',
+    width: 1800,
+    height: 1309,
+  ),
+];
+
+/// Walking cost of a stairs or elevator hop between floors, in plan pixels.
+/// Edges on the same floor cost the distance between their two nodes.
+const _floorChangeCost = 150.0;
+
+/// The campus graph and its pathway tree (Prim's Algorithm). Top-level finals
+/// load lazily, so this runs once, the first time a map opens, and the Map tab
+/// and the /map route share the result.
+final Future<(CampusGraph, PathwayTree)> _campus = _loadCampus();
+
+Future<(CampusGraph, PathwayTree)> _loadCampus() async {
+  final graph = await CampusGraph.loadAsset('assets/campus_graph.json');
+  final nodes = {for (final n in graph.nodes) n.id: n};
+  final pathways = PathwayTree.build(graph.nodes.map((n) => n.id), [
+    for (final e in graph.edges)
+      PathwayEdge(e.from, e.to, _walkCost(nodes[e.from], nodes[e.to])),
+  ]);
+  return (graph, pathways);
+}
+
+double _walkCost(MapNode? a, MapNode? b) {
+  if (a == null || b == null) return 0; // PathwayTree.build rejects the edge
+  if (a.floor != b.floor) return _floorChangeCost;
+  return (Offset(a.x, a.y) - Offset(b.x, b.y)).distance;
+}
+
+class MapScreen extends StatelessWidget {
   const MapScreen({super.key});
 
   @override
-  State<MapScreen> createState() => _MapScreenState();
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _campus,
+      builder: (context, snapshot) {
+        final campus = snapshot.data;
+        if (campus == null) {
+          return Scaffold(
+            body: Center(
+              child: snapshot.hasError
+                  ? Text(
+                      'Could not load the campus map.\n${snapshot.error}',
+                      textAlign: TextAlign.center,
+                    )
+                  : const CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        final (graph, pathways) = campus;
+        // Only the /map route opened from Home has somewhere to go back to.
+        final canGoBack = ModalRoute.of(context)?.canPop ?? false;
+
+        return CampusMapScreen(
+          graph: graph,
+          plans: _plans,
+          pathways: pathways,
+          onRouteShown: _recordNavigationSearch,
+          onBack: canGoBack ? () => Navigator.pop(context) : null,
+        );
+      },
+    );
+  }
 }
 
-class _MapScreenState extends State<MapScreen> {
-  String? _startingPoint;
-  String? _destination;
-
-  final List<String> _locations = [
-    'Main Building',
-    'Administration Building',
-    'Library',
-    'Computer Laboratory',
-    'Student Center',
-    'Cafeteria',
-    'Gymnasium',
-  ];
-
-  void _generateRoute() {
-    if (_startingPoint == null || _destination == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a starting point and destination.'),
-        ),
-      );
-
-      return;
-    }
-
-    unawaited(_recordNavigationSearch());
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Route generated from $_startingPoint to $_destination.'),
-      ),
-    );
+/// Feeds the navigation chart on the admin dashboard.
+Future<void> _recordNavigationSearch(MapNode from, MapNode to) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    return;
   }
 
-  Future<void> _recordNavigationSearch() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null || _startingPoint == null || _destination == null) {
-      return;
-    }
-
-    try {
-      await FirebaseFirestore.instance.collection('navigationSearches').add({
-        'userId': user.uid,
-        'startingPoint': _startingPoint,
-        'destination': _destination,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    } catch (error) {
-      debugPrint('Failed to record navigation search: $error');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFC),
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close, color: Color(0xFF20262D)),
-          tooltip: 'Back',
-        ),
-        title: const Text(
-          'Campus Map',
-          style: TextStyle(
-            color: Color(0xFF20262D),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: false,
-      ),
-
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Text(
-                  'Find your destination',
-                  textAlign: TextAlign.left,
-                  style: TextStyle(color: Color(0xFF8A969E), fontSize: 11),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // =====================================================
-              // MAP AREA
-              // =====================================================
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-
-                child: Container(
-                  width: double.infinity,
-                  height: 272,
-
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE0EAF3),
-
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-
-                    children: [
-                      Icon(
-                        Icons.map_outlined,
-                        size: 58,
-                        color: Colors.blue.shade700,
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      const Text(
-                        '2.5D Campus Map',
-
-                        style: TextStyle(
-                          color: Color(0xFF52616B),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-
-                      const SizedBox(height: 5),
-
-                      const Text(
-                        'Campus map will be added here.',
-
-                        style: TextStyle(
-                          color: Color(0xFF8A969E),
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // =====================================================
-              // ROUTE PANEL
-              // =====================================================
-              Container(
-                width: double.infinity,
-
-                padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
-
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(22),
-                    topRight: Radius.circular(22),
-                  ),
-                ),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    // ------------------------------------------------
-                    // STARTING POINT
-                    // ------------------------------------------------
-                    const Text(
-                      'Starting Point',
-
-                      style: TextStyle(
-                        color: Color(0xFF34454F),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 7),
-
-                    _locationDropdown(
-                      value: _startingPoint,
-                      hint: 'Select starting point',
-                      icon: Icons.location_on,
-                      onChanged: (value) {
-                        setState(() {
-                          _startingPoint = value;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 13),
-
-                    // ------------------------------------------------
-                    // DESTINATION
-                    // ------------------------------------------------
-                    const Text(
-                      'Destination',
-
-                      style: TextStyle(
-                        color: Color(0xFF34454F),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 7),
-
-                    _locationDropdown(
-                      value: _destination,
-                      hint: 'Select destination',
-                      icon: Icons.flag,
-                      onChanged: (value) {
-                        setState(() {
-                          _destination = value;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // ------------------------------------------------
-                    // GENERATE ROUTE
-                    // ------------------------------------------------
-                    SizedBox(
-                      width: double.infinity,
-                      height: 45,
-
-                      child: ElevatedButton(
-                        onPressed: _generateRoute,
-
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0866E8),
-
-                          foregroundColor: Colors.white,
-
-                          elevation: 0,
-
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-
-                        child: const Text(
-                          'GENERATE ROUTE',
-
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================================================================
-  // LOCATION DROPDOWN
-  // ================================================================
-
-  Widget _locationDropdown({
-    required String? value,
-    required String hint,
-    required IconData icon,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-
-      isExpanded: true,
-
-      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF657984)),
-
-      decoration: InputDecoration(
-        hintText: hint,
-
-        hintStyle: const TextStyle(color: Color(0xFF9AA6AE), fontSize: 10),
-
-        prefixIcon: Icon(icon, color: const Color(0xFF0866E8), size: 19),
-
-        filled: true,
-
-        fillColor: Colors.white,
-
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 11,
-        ),
-
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-
-          borderSide: const BorderSide(color: Color(0xFFD1E0E7), width: 1),
-        ),
-
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-
-          borderSide: const BorderSide(color: Color(0xFF0866E8), width: 1.2),
-        ),
-      ),
-
-      items: _locations.map((location) {
-        return DropdownMenuItem<String>(
-          value: location,
-
-          child: Text(
-            location,
-
-            style: const TextStyle(color: Color(0xFF34454F), fontSize: 11),
-          ),
-        );
-      }).toList(),
-
-      onChanged: onChanged,
-    );
+  try {
+    await FirebaseFirestore.instance.collection('navigationSearches').add({
+      'userId': user.uid,
+      'startingPoint': from.name,
+      'destination': to.name,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    debugPrint('Failed to record navigation search: $error');
   }
 }
