@@ -176,7 +176,11 @@ input {
 
 .sidebar {
   width: 235px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   min-height: 100vh;
+  align-self: flex-start;
   background: #3d3d3d;
   color: white;
   display: flex;
@@ -328,6 +332,10 @@ input {
 
 .topbar {
   height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-shrink: 0;
   background: white;
   border-bottom: 1px solid #e2e5e8;
   display: flex;
