@@ -58,6 +58,27 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /blockedWords/{wordId} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'word', 'normalizedWord', 'language', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'word', 'normalizedWord', 'language', 'createdAt'
+        ])
+        && request.resource.data.word is string
+        && request.resource.data.word.size() > 0
+        && request.resource.data.word.size() <= 80
+        && request.resource.data.normalizedWord is string
+        && request.resource.data.language in [
+          'English', 'Tagalog', 'Cebuano', 'Mixed / Other'
+        ]
+        && request.resource.data.createdAt == request.time;
+      allow delete: if isAdmin();
+      allow update: if false;
+    }
+
     // Usage logs written by the mobile app and charted on the admin dashboard.
     match /chatbotQueries/{queryId} {
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
@@ -67,6 +88,21 @@ service cloud.firestore {
     match /navigationSearches/{searchId} {
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
       allow read: if isAdmin();
+    }
+
+    match /feedback/{feedbackId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['rating', 'message', 'createdAt'])
+        && request.resource.data.keys().hasAll(['rating', 'message', 'createdAt'])
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 2000
+        && request.resource.data.createdAt == request.time;
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
 
     // Students deleted in the admin panel. Their Firebase login still exists,

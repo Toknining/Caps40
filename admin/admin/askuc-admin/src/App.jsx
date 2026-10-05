@@ -4,11 +4,13 @@ import {
   adminSignOut,
   auth,
   checkForAdminAccount,
+  createBlockedWord,
   createAdminAccount,
   createAnnouncement,
   createFaq,
   createStudentAccount,
   deleteAnnouncement,
+  deleteBlockedWord,
   deleteFaq,
   deleteStudentAccount,
   getAnnouncements,
@@ -19,9 +21,11 @@ import {
   resetStudentPassword,
   subscribeToAdminAuthState,
   subscribeToCurrentAdminProfile,
+  subscribeToBlockedWords,
   subscribeToAnnouncementCount,
   subscribeToAnnouncements,
   subscribeToChatbotQueries,
+  subscribeToFeedback,
   subscribeToFaqCount,
   subscribeToNavigationSearches,
   subscribeToStudentCount,
@@ -474,6 +478,8 @@ function AdminLayout({
 
           {activePage === 'Map' && <MapPage />}
 
+          {activePage === 'Feedback' && <FeedbackPage />}
+
           {activePage === 'Profile Settings' && (
             <ProfileSettingsPage
               adminProfile={adminProfile}
@@ -519,6 +525,10 @@ function Sidebar({
     {
       name: 'Map',
       icon: '⌖',
+    },
+    {
+      name: 'Feedback',
+      icon: '★',
     },
     {
       name: 'Profile Settings',
@@ -1255,9 +1265,15 @@ function ContentPage() {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [faqs, setFaqs] = useState([]);
+  const [blockedWord, setBlockedWord] = useState('');
+  const [blockedWordLanguage, setBlockedWordLanguage] = useState('English');
+  const [blockedWords, setBlockedWords] = useState([]);
   const [loadingFaqs, setLoadingFaqs] = useState(true);
+  const [loadingBlockedWords, setLoadingBlockedWords] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submittingBlockedWord, setSubmittingBlockedWord] = useState(false);
   const [editingFaqId, setEditingFaqId] = useState(null);
+  const [blockedWordsError, setBlockedWordsError] = useState('');
 
   async function loadFaqs() {
     try {
@@ -1273,6 +1289,23 @@ function ContentPage() {
 
   useEffect(() => {
     loadFaqs();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToBlockedWords(
+      (items) => {
+        setBlockedWords(items);
+        setLoadingBlockedWords(false);
+        setBlockedWordsError('');
+      },
+      (error) => {
+        console.error('Failed to load blocked words:', error);
+        setBlockedWordsError('Could not load the blocked-word list. Check your connection and Firestore permissions.');
+        setLoadingBlockedWords(false);
+      },
+    );
+
+    return () => unsubscribe();
   }, []);
 
   const handleSubmit = async (event) => {
@@ -1332,12 +1365,49 @@ function ContentPage() {
     }
   };
 
+  const handleAddBlockedWord = async (event) => {
+    event.preventDefault();
+    setBlockedWordsError('');
+
+    if (!blockedWord.trim()) {
+      setBlockedWordsError('Enter a word or phrase to block.');
+      return;
+    }
+
+    try {
+      setSubmittingBlockedWord(true);
+      await createBlockedWord({
+        word: blockedWord,
+        language: blockedWordLanguage,
+      });
+      setBlockedWord('');
+    } catch (error) {
+      console.error('Failed to add blocked word:', error);
+      setBlockedWordsError(error.message || 'Could not add the blocked word.');
+    } finally {
+      setSubmittingBlockedWord(false);
+    }
+  };
+
+  const handleDeleteBlockedWord = async (item) => {
+    if (!window.confirm(`Remove "${item.word}" from the blocked list?`)) {
+      return;
+    }
+
+    try {
+      await deleteBlockedWord(item.id);
+    } catch (error) {
+      console.error('Failed to remove blocked word:', error);
+      setBlockedWordsError(error.message || 'Could not remove the blocked word.');
+    }
+  };
+
   return (
     <div className="module-page">
       <div className="module-heading">
         <div>
           <h1>Content Management</h1>
-          <p>Create and manage campus FAQ entries.</p>
+          <p>Manage campus FAQs and the answers available to the mobile chatbot.</p>
         </div>
       </div>
 
@@ -1347,7 +1417,11 @@ function ContentPage() {
             <div className="announcement-icon">?</div>
             <div>
               <h3>{editingFaqId ? 'Edit FAQ' : 'Add FAQ'}</h3>
-              <p>{editingFaqId ? 'Update the selected student FAQ.' : 'Publish a new frequently asked question for students.'}</p>
+              <p>
+                {editingFaqId
+                  ? 'Update this FAQ and its chatbot answer.'
+                  : 'Add a question and answer for students and the mobile chatbot.'}
+              </p>
             </div>
           </div>
 
@@ -1392,8 +1466,8 @@ function ContentPage() {
           <div className="announcement-card-header">
             <div className="announcement-icon">▤</div>
             <div>
-              <h3>FAQ List</h3>
-              <p>Live list of all published FAQ entries.</p>
+              <h3>Chatbot Knowledge Base</h3>
+              <p>FAQ entries available to the chatbot when a question matches.</p>
             </div>
           </div>
 
@@ -1434,6 +1508,108 @@ function ContentPage() {
           )}
         </div>
       </div>
+
+      <section className="blocked-words-section">
+        <div className="blocked-words-heading">
+          <div>
+            <h2>Chatbot Word Filter</h2>
+            <p>
+              Manage words and phrases the mobile chatbot will block in English,
+              Tagalog, and Cebuano. The filter checks every listed term regardless
+              of the selected language.
+            </p>
+          </div>
+        </div>
+
+        <div className="announcement-layout">
+          <div className="announcement-form-card">
+            <div className="announcement-card-header">
+              <div className="announcement-icon">!</div>
+              <div>
+                <h3>Add a blocked word or phrase</h3>
+                <p>Only terms you add here are blocked; there is no built-in list.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleAddBlockedWord} className="announcement-form">
+              <div className="form-group">
+                <label htmlFor="blocked-word">Word or phrase</label>
+                <input
+                  id="blocked-word"
+                  type="text"
+                  maxLength={80}
+                  value={blockedWord}
+                  onChange={(event) => setBlockedWord(event.target.value)}
+                  placeholder="Enter a word or phrase"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="blocked-word-language">Language</label>
+                <select
+                  id="blocked-word-language"
+                  value={blockedWordLanguage}
+                  onChange={(event) => setBlockedWordLanguage(event.target.value)}
+                >
+                  <option>English</option>
+                  <option>Tagalog</option>
+                  <option>Cebuano</option>
+                  <option>Mixed / Other</option>
+                </select>
+              </div>
+
+              {blockedWordsError && (
+                <p className="blocked-words-error" role="alert">{blockedWordsError}</p>
+              )}
+
+              <div className="announcement-action-row">
+                <button
+                  type="submit"
+                  className="login-button"
+                  disabled={submittingBlockedWord}
+                >
+                  {submittingBlockedWord ? 'Saving...' : 'Add to blocked list'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="announcement-list-card">
+            <div className="announcement-card-header">
+              <div className="announcement-icon">⊘</div>
+              <div>
+                <h3>Blocked Words</h3>
+                <p>These terms are checked before a chat message is sent.</p>
+              </div>
+            </div>
+
+            {loadingBlockedWords ? (
+              <p>Loading blocked words...</p>
+            ) : blockedWords.length === 0 ? (
+              <p>No blocked words have been added.</p>
+            ) : (
+              <div className="blocked-word-list">
+                {blockedWords.map((item) => (
+                  <div className="blocked-word-item" key={item.id}>
+                    <div>
+                      <strong>{item.word}</strong>
+                      <span>{item.language || 'Mixed / Other'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="faq-delete-button"
+                      onClick={() => handleDeleteBlockedWord(item)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1729,6 +1905,7 @@ function UsersPage() {
           </div>
         </div>
       </div>
+
     </div>
   );
 }
@@ -2031,6 +2208,108 @@ function LocationItem({
         Edit
       </button>
 
+    </div>
+  );
+}
+
+/* ============================================================
+   FEEDBACK AND RATINGS
+============================================================ */
+
+function FeedbackPage() {
+  const [feedback, setFeedback] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = subscribeToFeedback(
+      (items) => {
+        setFeedback(items);
+        setLoading(false);
+        setError('');
+      },
+      (subscriptionError) => {
+        console.error('Failed to load feedback:', subscriptionError);
+        setError('Could not load feedback. Check your connection and Firestore permissions.');
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const ratings = feedback
+    .map((item) => Number(item.rating))
+    .filter((rating) => Number.isInteger(rating) && rating >= 1 && rating <= 5);
+  const averageRating = ratings.length
+    ? (ratings.reduce((total, rating) => total + rating, 0) / ratings.length).toFixed(1)
+    : '—';
+
+  return (
+    <div className="module-page">
+      <div className="module-heading">
+        <div>
+          <h1>Feedback & Ratings</h1>
+          <p>Review anonymous student ratings and feedback about AskUC.</p>
+        </div>
+      </div>
+
+      <div className="feedback-summary">
+        <div className="feedback-summary-card">
+          <span>Total submissions</span>
+          <strong>{loading ? '—' : feedback.length}</strong>
+        </div>
+        <div className="feedback-summary-card">
+          <span>Average rating</span>
+          <strong>{loading ? '—' : averageRating}<span className="feedback-summary-star"> ★</span></strong>
+        </div>
+      </div>
+
+      <section className="feedback-list-card">
+        <div className="announcement-card-header compact">
+          <div>
+            <h3>Student Feedback</h3>
+            <p>Submissions are anonymous.</p>
+          </div>
+        </div>
+
+        {error ? (
+          <div className="feedback-state feedback-error" role="alert">{error}</div>
+        ) : loading ? (
+          <div className="feedback-state">Loading feedback...</div>
+        ) : feedback.length === 0 ? (
+          <div className="feedback-state">No feedback has been submitted yet.</div>
+        ) : (
+          <div className="feedback-list">
+            {feedback.map((item) => {
+              const rating = Number(item.rating);
+              const validRating = Number.isInteger(rating) && rating >= 1 && rating <= 5;
+              const createdAt = item.createdAt?.toDate?.();
+
+              return (
+                <article className="feedback-item" key={item.id}>
+                  <div className="feedback-item-heading">
+                    <div>
+                      <strong>Anonymous</strong>
+                      <div className="feedback-rating" aria-label={validRating ? `${rating} out of 5 stars` : 'Rating unavailable'}>
+                        {validRating
+                          ? `${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}`
+                          : 'Rating unavailable'}
+                      </div>
+                    </div>
+                    <time>
+                      {createdAt
+                        ? createdAt.toLocaleString()
+                        : 'Date unavailable'}
+                    </time>
+                  </div>
+                  <p>{typeof item.message === 'string' ? item.message : 'No written feedback provided.'}</p>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

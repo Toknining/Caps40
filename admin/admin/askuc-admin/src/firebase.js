@@ -326,6 +326,24 @@ export function subscribeToNavigationSearches(callback, onError) {
   );
 }
 
+export function subscribeToFeedback(callback, onError) {
+  const feedbackRef = collection(db, 'feedback');
+  const q = query(feedbackRef, orderBy('createdAt', 'desc'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      callback(
+        snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })),
+      );
+    },
+    onError,
+  );
+}
+
 export async function getAnnouncements() {
   const announcementsRef = collection(db, 'announcements');
   const q = query(announcementsRef, orderBy('createdAt', 'desc'));
@@ -371,6 +389,55 @@ export async function updateFaq(id, { question, answer }) {
 
 export async function deleteFaq(id) {
   await deleteDoc(doc(db, 'faqs', id));
+}
+
+export function subscribeToBlockedWords(callback, onError) {
+  const blockedWordsRef = collection(db, 'blockedWords');
+  const q = query(blockedWordsRef, orderBy('createdAt', 'desc'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      callback(
+        snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })),
+      );
+    },
+    onError,
+  );
+}
+
+export async function createBlockedWord({ word, language }) {
+  const trimmedWord = word.trim();
+  const normalizedWord = trimmedWord.toLowerCase();
+  const allowedLanguages = ['English', 'Tagalog', 'Cebuano', 'Mixed / Other'];
+
+  if (!normalizedWord || trimmedWord.length > 80) {
+    throw new Error('Enter a word or phrase to block.');
+  }
+  if (!allowedLanguages.includes(language)) {
+    throw new Error('Select a supported language.');
+  }
+
+  const existingWords = await getDocs(
+    query(collection(db, 'blockedWords'), where('normalizedWord', '==', normalizedWord)),
+  );
+  if (!existingWords.empty) {
+    throw new Error('That word or phrase is already in the blocked list.');
+  }
+
+  await addDoc(collection(db, 'blockedWords'), {
+    word: trimmedWord,
+    normalizedWord,
+    language,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function deleteBlockedWord(id) {
+  await deleteDoc(doc(db, 'blockedWords', id));
 }
 
 export async function adminSignIn(email, password, rememberMe = true) {
