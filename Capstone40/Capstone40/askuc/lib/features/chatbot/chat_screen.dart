@@ -36,6 +36,8 @@ class _ChatScreenState extends State<ChatScreen> {
   double _dragDistance = 0;
 
   bool _isTyping = false;
+  Future<List<String>>? _blockedWordsFuture;
+  DateTime? _blockedWordsCachedAt;
 
   @override
   void dispose() {
@@ -49,10 +51,52 @@ class _ChatScreenState extends State<ChatScreen> {
   // SEND MESSAGE
   // ================================================================
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final message = _messageController.text.trim();
 
-    if (message.isEmpty) {
+    if (message.isEmpty || _isTyping) {
+      return;
+    }
+
+    setState(() => _isTyping = true);
+
+    try {
+      final blockedWord = await _findBlockedWord(message);
+      if (!mounted) {
+        return;
+      }
+
+      if (blockedWord != null) {
+        setState(() {
+          _isTyping = false;
+          _messageController.clear();
+          _messages.add(
+            _ChatMessage(
+              text:
+                  'I can’t help with a message containing a blocked word or phrase. '
+                  'Please rephrase your question.',
+              isUser: false,
+              time: _currentTime(),
+            ),
+          );
+        });
+        _scrollToBottom();
+        return;
+      }
+    } catch (error) {
+      debugPrint('Failed to check blocked words: $error');
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _isTyping = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to check the word filter. Your message was not sent.',
+          ),
+        ),
+      );
       return;
     }
 
@@ -62,11 +106,9 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       _messageController.clear();
-
-      _isTyping = true;
     });
 
-    unawaited(_recordChatbotQuery());
+    unawaited(_recordChatbotQuery(message));
 
     _scrollToBottom();
 
@@ -74,7 +116,8 @@ class _ChatScreenState extends State<ChatScreen> {
     // TEMPORARY RESPONSE
     // --------------------------------------------------------------
 
-    Future.delayed(const Duration(milliseconds: 900), () {
+    Future.delayed(const Duration(milliseconds: 900), () async {
+      final knowledgeBaseAnswer = await _findKnowledgeBaseAnswer(message);
       if (!mounted) {
         return;
       }
@@ -84,7 +127,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
         _messages.add(
           _ChatMessage(
-            text: _getDemoResponse(message),
+            text:
+                '${knowledgeBaseAnswer ?? _getDemoResponse(message)}\n\n'
+                'Recommendation: '
+                '${_recommendationForIntent(_recognizeIntent(message), _recognizeLanguage(message))}',
             isUser: false,
             time: _currentTime(),
           ),
@@ -95,7 +141,72 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<void> _recordChatbotQuery() async {
+  Future<List<String>> _loadBlockedWords() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('blockedWords')
+        .get();
+    return snapshot.docs
+        .map((document) => document.data()['word'])
+        .whereType<String>()
+        .map((word) => word.trim().toLowerCase())
+        .where((word) => word.isNotEmpty)
+        .toList();
+  }
+
+  Future<String?> _findBlockedWord(String message) async {
+    try {
+      final cacheIsStale =
+          _blockedWordsCachedAt == null ||
+          DateTime.now().difference(_blockedWordsCachedAt!) >
+              const Duration(seconds: 30);
+      if (_blockedWordsFuture == null || cacheIsStale) {
+        _blockedWordsFuture = _loadBlockedWords();
+        _blockedWordsCachedAt = DateTime.now();
+      }
+      final words = await _blockedWordsFuture!;
+      final messageTokens = _textTokens(message);
+
+      for (final word in words) {
+        final wordTokens = _textTokens(word);
+        if (_containsTokenSequence(messageTokens, wordTokens)) {
+          return word;
+        }
+      }
+      return null;
+    } catch (_) {
+      _blockedWordsFuture = null;
+      _blockedWordsCachedAt = null;
+      rethrow;
+    }
+  }
+
+  List<String> _textTokens(String text) => text
+      .toLowerCase()
+      .split(RegExp(r'[^\w\u00c0-\u024f]+'))
+      .where((token) => token.isNotEmpty)
+      .toList();
+
+  bool _containsTokenSequence(List<String> text, List<String> phrase) {
+    if (phrase.isEmpty || phrase.length > text.length) {
+      return false;
+    }
+
+    for (var start = 0; start <= text.length - phrase.length; start++) {
+      var matches = true;
+      for (var offset = 0; offset < phrase.length; offset++) {
+        if (text[start + offset] != phrase[offset]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> _recordChatbotQuery(String question) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return;
@@ -104,10 +215,244 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       await FirebaseFirestore.instance.collection('chatbotQueries').add({
         'userId': user.uid,
+        'intent': _recognizeIntent(question),
+        'recommendationRule': _recognizeIntent(question),
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (error) {
       debugPrint('Failed to record chatbot query: $error');
+    }
+  }
+
+  Future<String?> _findKnowledgeBaseAnswer(String question) async {
+    final questionTerms = _knowledgeBaseTerms(question);
+    if (questionTerms.isEmpty) {
+      return null;
+    }
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('faqs')
+          .get();
+      String? bestAnswer;
+      var bestScore = 0.0;
+
+      for (final document in snapshot.docs) {
+        final data = document.data();
+        final faqQuestion = data['question'];
+        final faqAnswer = data['answer'];
+        if (faqQuestion is! String ||
+            faqAnswer is! String ||
+            faqAnswer.trim().isEmpty) {
+          continue;
+        }
+
+        final faqTerms = _knowledgeBaseTerms(faqQuestion);
+        if (faqTerms.isEmpty) {
+          continue;
+        }
+
+        final matchingTerms = questionTerms.intersection(faqTerms).length;
+        final score = matchingTerms / questionTerms.length;
+        if (score >= 0.5 && score > bestScore) {
+          bestScore = score;
+          bestAnswer = faqAnswer.trim();
+        }
+      }
+
+      return bestAnswer;
+    } catch (error) {
+      debugPrint('Failed to search chatbot knowledge base: $error');
+      return null;
+    }
+  }
+
+  Set<String> _knowledgeBaseTerms(String text) {
+    const stopWords = {
+      'a',
+      'an',
+      'and',
+      'are',
+      'can',
+      'do',
+      'does',
+      'for',
+      'how',
+      'i',
+      'is',
+      'it',
+      'me',
+      'of',
+      'on',
+      'please',
+      'the',
+      'to',
+      'what',
+      'where',
+      'which',
+      'who',
+      'why',
+      'you',
+      'ako',
+      'ang',
+      'ba',
+      'kanus',
+      'kinsa',
+      'mga',
+      'mo',
+      'ng',
+      'nga',
+      'ngano',
+      'nimo',
+      'nasa',
+      'nasaan',
+      'ano',
+      'anong',
+      'asa',
+      'pila',
+      'po',
+      'para',
+      'sa',
+      'saan',
+      'siya',
+      'unsa',
+      'ug',
+    };
+
+    return text
+        .toLowerCase()
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((term) => term.length > 2 && !stopWords.contains(term))
+        .toSet();
+  }
+
+  String _recognizeIntent(String question) {
+    final text = question.toLowerCase();
+
+    if (_containsAny(text, ['library', 'librarya', 'aklatan'])) {
+      return 'library_location';
+    }
+
+    if (_containsAny(text, [
+      'hours',
+      'open',
+      'oras',
+      'orasa',
+      'bukas ba',
+      'abri',
+      'abli',
+    ])) {
+      return 'opening_hours';
+    }
+
+    if (_containsAny(text, ['office', 'opisina', 'tanggapan'])) {
+      return 'office_contact';
+    }
+
+    if (_containsAny(text, ['announcement', 'anunsyo', 'pahibalo', 'balita'])) {
+      return 'announcements';
+    }
+
+    if (_containsAny(text, [
+      'faq',
+      'pangutana',
+      'kasagarang pangutana',
+      'frequently asked',
+      'tanong',
+      'katanungan',
+    ])) {
+      return 'faq';
+    }
+
+    return 'general';
+  }
+
+  bool _containsAny(String text, List<String> terms) =>
+      terms.any((term) => text.contains(term));
+
+  String _recognizeLanguage(String question) {
+    final tokens = _textTokens(question).toSet();
+    const cebuanoCues = {
+      'asa',
+      'unsa',
+      'abri',
+      'abli',
+      'pahibalo',
+      'kasagarang',
+      'kanus',
+      'kinsa',
+      'pila',
+      'ngano',
+      'librarya',
+    };
+    const tagalogCues = {
+      'saan',
+      'nasaan',
+      'aklatan',
+      'oras',
+      'anong',
+      'ano',
+      'tanggapan',
+      'anunsyo',
+      'bakit',
+      'paano',
+      'magkano',
+    };
+    final cebuanoScore = tokens.intersection(cebuanoCues).length;
+    final tagalogScore = tokens.intersection(tagalogCues).length;
+
+    if (cebuanoScore > tagalogScore && cebuanoScore > 0) {
+      return 'Cebuano';
+    }
+    if (tagalogScore > 0) {
+      return 'Tagalog';
+    }
+    return 'English';
+  }
+
+  String _recommendationForIntent(String intent, String language) {
+    if (language == 'Cebuano') {
+      switch (intent) {
+        case 'library_location':
+          return 'Ablihi ang Campus Map aron pangitaon ang Library ug makita ang agianan.';
+        case 'opening_hours':
+          return 'Tan-awa ang Announcements para sa mga kausaban sa oras.';
+        case 'office_contact':
+          return 'Tan-awa ang campus FAQs alang sa impormasyon sa opisina.';
+        case 'announcements':
+          return 'Ablihi ang Announcements aron mabasa ang pinakabag-ong mga pahibalo.';
+        default:
+          return 'Pangutana bahin sa Library, opisina, oras, o mga pahibalo sa campus.';
+      }
+    }
+    if (language == 'Tagalog') {
+      switch (intent) {
+        case 'library_location':
+          return 'Buksan ang Campus Map para mahanap ang Library at makita ang ruta.';
+        case 'opening_hours':
+          return 'Tingnan ang Announcements para sa mga pagbabago sa oras.';
+        case 'office_contact':
+          return 'Tingnan ang campus FAQs para sa impormasyon ng opisina.';
+        case 'announcements':
+          return 'Buksan ang Announcements para mabasa ang pinakabagong mga anunsyo.';
+        default:
+          return 'Magtanong tungkol sa Library, opisina, oras, o mga anunsyo sa campus.';
+      }
+    }
+
+    switch (intent) {
+      case 'library_location':
+        return 'Open the Campus Map to locate the Library and plan your route.';
+      case 'opening_hours':
+        return 'Check Announcements for schedule changes before you visit.';
+      case 'office_contact':
+        return 'Browse the campus FAQs for office contact information.';
+      case 'announcements':
+        return 'Open Announcements to read the latest campus updates.';
+      case 'faq':
+        return 'Try asking about a campus location, office, or opening hours.';
+      default:
+        return 'Try asking about the Library, office contacts, opening hours, or announcements.';
     }
   }
 
@@ -116,35 +461,70 @@ class _ChatScreenState extends State<ChatScreen> {
   // ================================================================
 
   String _getDemoResponse(String question) {
-    final text = question.toLowerCase();
+    final intent = _recognizeIntent(question);
+    final language = _recognizeLanguage(question);
 
-    if (text.contains('library')) {
+    if (language == 'Cebuano') {
+      switch (intent) {
+        case 'library_location':
+          return 'Ang Library duol sa Main Building, sa ground floor atbang sa central courtyard.';
+        case 'opening_hours':
+          return 'Abli ang Library:\n\n'
+              'Lunes–Biyernes: 7:30 AM–9:00 PM\n'
+              'Sabado: 8:00 AM–5:00 PM';
+        case 'office_contact':
+          return 'Kontaka ang angay nga opisina sa unibersidad alang sa tabang ug impormasyon.';
+        case 'announcements':
+          return 'Ablihi ang Announcements aron makita ang pinakabag-ong mga pahibalo sa campus.';
+        default:
+          return 'Makatabang ang AskUC sa impormasyon sa campus, mga lokasyon, pahibalo, ug kasagarang pangutana. Unsa pa imong gustong mahibal-an?';
+      }
+    }
+
+    if (language == 'Tagalog') {
+      switch (intent) {
+        case 'library_location':
+          return 'Malapit ang Library sa Main Building, sa ground floor, katapat ng central courtyard.';
+        case 'opening_hours':
+          return 'Bukas ang Library:\n\n'
+              'Lunes–Biyernes: 7:30 AM–9:00 PM\n'
+              'Sabado: 8:00 AM–5:00 PM';
+        case 'office_contact':
+          return 'Makipag-ugnayan sa naaangkop na tanggapan ng unibersidad para sa tulong at impormasyon.';
+        case 'announcements':
+          return 'Buksan ang Announcements para makita ang pinakabagong mga anunsyo sa campus.';
+        default:
+          return 'Makakatulong ang AskUC sa impormasyon tungkol sa campus, mga lokasyon, anunsyo, at mga karaniwang tanong. Ano pa ang gusto mong malaman?';
+      }
+    }
+
+    if (intent == 'library_location') {
       return 'The library is located near the '
           'Main Building. You can find it on '
           'the ground floor, facing the central '
           'courtyard.';
     }
 
-    if (text.contains('hours') || text.contains('open')) {
+    if (intent == 'opening_hours') {
       return 'The library is open from:\n\n'
           'Monday – Friday: 7:30 AM – 9:00 PM\n'
           'Saturday: 8:00 AM – 5:00 PM';
     }
 
-    if (text.contains('office')) {
+    if (intent == 'office_contact') {
       return 'You can contact the appropriate '
           'university office for assistance. '
           'AskUC can also help you find the '
           'information you need.';
     }
 
-    if (text.contains('announcement')) {
+    if (intent == 'announcements') {
       return 'You can check the Notifications '
           'section to view the latest campus '
           'announcements.';
     }
 
-    if (text.contains('faq')) {
+    if (intent == 'faq') {
       return 'AskUC can help answer common '
           'questions about campus services, '
           'locations, offices, and university '
@@ -162,6 +542,10 @@ class _ChatScreenState extends State<ChatScreen> {
   // ================================================================
 
   void _sendQuickQuestion(String question) {
+    if (_isTyping) {
+      return;
+    }
+
     _messageController.text = question;
 
     _sendMessage();
@@ -764,6 +1148,8 @@ class _ChatScreenState extends State<ChatScreen> {
             child: TextField(
               controller: _messageController,
 
+              enabled: !_isTyping,
+
               minLines: 1,
               maxLines: 4,
 
@@ -820,7 +1206,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: InkWell(
               customBorder: const CircleBorder(),
 
-              onTap: _sendMessage,
+              onTap: _isTyping ? null : _sendMessage,
 
               child: const SizedBox(
                 width: 48,

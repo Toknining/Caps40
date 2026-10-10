@@ -6,6 +6,7 @@ import '../../services/auth_service.dart';
 import '../profile/profile_image_picker.dart';
 import '../profile/profile_screen.dart';
 import '../auth/change_password_screen.dart';
+import '../feedback/feedback_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -294,6 +295,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: 'Manage notification preferences',
                 onTap: () {
                   Navigator.pushNamed(context, AppRoutes.announcements);
+                },
+              ),
+
+              const SizedBox(height: 10),
+
+              _settingsCard(
+                icon: Icons.rate_review_outlined,
+                title: 'Feedback & Rating',
+                subtitle: 'Rate AskUC and share your feedback anonymously',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FeedbackScreen(),
+                    ),
+                  );
                 },
               ),
 
