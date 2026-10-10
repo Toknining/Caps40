@@ -26,8 +26,27 @@ void main() {
     ]);
   });
 
+  MapNode named(String name) => graph.nodes.firstWhere((n) => n.name == name);
+
+  /// Opens a field's list, searches it, and picks [place].
+  Future<void> choose(
+    WidgetTester tester,
+    String field,
+    String search,
+    String place,
+  ) async {
+    await tester.tap(
+      find.ancestor(of: find.text(field), matching: find.byType(InkWell)).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), search);
+    await tester.pump();
+    await tester.tap(find.text(place));
+    await tester.pumpAndSettle();
+  }
+
   group('CampusMapScreen', () {
-    testWidgets('Directions shows the pathway and reports it once', (
+    testWidgets('Generate route shows the pathway and glides to the start', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(393 * 2, 852 * 2);
@@ -42,9 +61,9 @@ void main() {
             plans: const [
               FloorPlan(
                 floor: 5,
-                asset: 'assets/floorplans/floor_5.png',
-                width: 1800,
-                height: 1309,
+                asset: 'assets/floorplans/Main_5ft_Floor_CSS.png',
+                width: 1216,
+                height: 864,
               ),
             ],
             pathways: pathways,
@@ -53,31 +72,43 @@ void main() {
         ),
       );
 
-      await tester.enterText(find.byType(TextField), '544');
+      await tester.tap(find.text('GENERATE ROUTE'));
       await tester.pump();
-      await tester.tap(find.text('Room 544'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Directions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text("CICS Dean's Office 531"));
+      expect(find.text('Please choose a starting point.'), findsOneWidget);
+      expect(find.text('Please choose a destination.'), findsOneWidget);
+
+      await choose(tester, 'Select starting point', 'dean', 'CICS Dean Office');
+      expect(find.text('Please choose a starting point.'), findsNothing);
+      await choose(tester, 'Select destination', '544', 'CICS Cisco Lab 544');
+      await tester.tap(find.text('GENERATE ROUTE'));
       await tester.pumpAndSettle();
 
-      final dean = graph.nodes.firstWhere(
-        (n) => n.name == "CICS Dean's Office 531",
-      );
-      final room = graph.nodes.firstWhere((n) => n.name == 'Room 544');
+      final dean = named('CICS Dean Office');
+      final room = named('CICS Cisco Lab 544');
       var map = tester.widget<TiltedCampusMap>(find.byType(TiltedCampusMap));
       expect(map.routeIds, pathways.route(dean.id, room.id));
       expect(map.originId, dean.id);
       expect(map.destinationId, room.id);
-      expect(shown, ["CICS Dean's Office 531 -> Room 544"]);
+      expect(shown, ['CICS Dean Office -> CICS Cisco Lab 544']);
 
-      await tester.tap(find.byTooltip('Clear directions'));
-      await tester.pumpAndSettle();
+      // The map glided to the starting point, now in the middle of the map.
+      final middle = tester
+          .getSize(find.byType(TiltedCampusMap))
+          .center(Offset.zero);
+      final start = map.controller!.positionOf(dean.id)!;
+      expect((start - middle).distance, lessThan(1));
 
+      // Picking a new destination clears the old pathway until it is
+      // generated again.
+      await choose(
+        tester,
+        'CICS Cisco Lab 544',
+        '530',
+        'CICS Computer lab 530',
+      );
       map = tester.widget<TiltedCampusMap>(find.byType(TiltedCampusMap));
       expect(map.routeIds, isEmpty);
-      expect(find.text('Directions'), findsOneWidget);
+      expect(map.destinationId, named('CICS Computer lab 530').id);
     });
   });
 }

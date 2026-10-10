@@ -1495,11 +1495,6 @@ function UsersPage() {
       return;
     }
 
-    if (editingId && password && password.length < 6) {
-      alert('New password must be at least 6 characters long.');
-      return;
-    }
-
     try {
       setSubmitting(true);
 
@@ -1509,13 +1504,7 @@ function UsersPage() {
           lastName,
           studentId,
         });
-
-        if (password.trim()) {
-          await resetStudentPassword(email);
-          alert('Student updated successfully. A password reset email was sent to the student.');
-        } else {
-          alert('Student updated successfully.');
-        }
+        alert('Student updated successfully.');
       } else {
         await createStudentAccount({
           firstName,
@@ -1646,15 +1635,24 @@ function UsersPage() {
               />
             </div>
 
+            {/* Only a server with admin access can set another user's password,
+                so existing students change theirs through a reset email. */}
             <div className="form-group">
-              <label>{editingId ? 'New Password (optional)' : 'Password'}</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder={editingId ? 'Leave blank to keep current password' : 'Create student password'}
-                required={!editingId}
-              />
+              <label>Password</label>
+              {editingId ? (
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#64748b' }}>
+                  Passwords can't be changed here. Use <strong>Reset Password</strong> in the
+                  student list to email the student a link to choose a new one.
+                </p>
+              ) : (
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Create student password"
+                  required
+                />
+              )}
             </div>
 
             <div className="announcement-action-row">

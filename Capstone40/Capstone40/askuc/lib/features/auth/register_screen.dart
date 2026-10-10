@@ -78,6 +78,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         message = 'Please use a stronger password.';
       } else if (e.code == 'invalid-email') {
         message = 'Please enter a valid email address.';
+      } else if (e.code == 'network-request-failed') {
+        message = 'No internet connection. Check your Wi-Fi or mobile data and try again.';
       } else if (e.code == 'operation-not-allowed') {
         message =
             'Email/password registration is disabled in Firebase. Enable Email/Password in Firebase Console > Authentication > Sign-in method.';

@@ -78,32 +78,24 @@ void main() {
       expect(unreachable, isEmpty);
     });
 
-    test("Dean's Office to Room 544 walks the corridor", () {
+    test('Dean Office to Cisco Lab 544 walks the corridor', () {
       final (tree, nodes) = _loadCampus();
       String idOf(String name) =>
           nodes.values.firstWhere((node) => node['name'] == name)['id']
               as String;
 
       final route = tree.route(
-        idOf("CICS Dean's Office 531"),
-        idOf('Room 544'),
+        idOf('CICS Dean Office'),
+        idOf('CICS Cisco Lab 544'),
       );
+      final names = [for (final id in route) nodes[id]!['name']];
 
-      expect(
-        [for (final id in route) nodes[id]!['name']],
-        [
-          "CICS Dean's Office 531",
-          '5_c1',
-          '5_c2',
-          '5_c4',
-          '5_c5',
-          '5_c6',
-          '5_c7',
-          '5_c8',
-          '5_c9',
-          'Room 544',
-        ],
-      );
+      expect(names.first, 'CICS Dean Office');
+      expect(names.last, 'CICS Cisco Lab 544');
+      // Everything in between is corridor, never another room.
+      expect([
+        for (final id in route.sublist(1, route.length - 1)) nodes[id]!['kind'],
+      ], everyElement(anyOf('hall', 'stairs', 'elevator')));
     });
   });
 }

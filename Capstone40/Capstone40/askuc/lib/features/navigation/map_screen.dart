@@ -12,9 +12,9 @@ import 'pathway_tree.dart';
 const _plans = [
   FloorPlan(
     floor: 5,
-    asset: 'assets/floorplans/floor_5.png',
-    width: 1800,
-    height: 1309,
+    asset: 'assets/floorplans/Main_5ft_Floor_CSS.png',
+    width: 1216,
+    height: 864,
   ),
 ];
 
