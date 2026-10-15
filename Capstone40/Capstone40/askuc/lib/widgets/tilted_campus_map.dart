@@ -106,6 +106,30 @@ class CampusGraph {
   }
 }
 
+/// A change of floor along a route: leave by the stairs or lift at [from] and
+/// carry on walking from [to]. Floors the route only passes through inside
+/// the stairwell are skipped.
+typedef FloorChange = ({MapNode from, MapNode to});
+
+/// Every change of floor along [route], in walking order.
+List<FloorChange> floorChanges(List<MapNode> route) {
+  final changes = <FloorChange>[];
+  var i = 0;
+  while (i < route.length - 1) {
+    if (route[i + 1].floor == route[i].floor) {
+      i++;
+      continue;
+    }
+    var j = i + 1;
+    while (j < route.length - 1 && route[j + 1].floor != route[j].floor) {
+      j++;
+    }
+    changes.add((from: route[i], to: route[j]));
+    i = j;
+  }
+  return changes;
+}
+
 // ---------------------------------------------------------------- controller
 
 /// Moves a [TiltedCampusMap] from code. Hand the same controller to the map,
@@ -147,7 +171,8 @@ class TiltedCampusMap extends StatefulWidget {
   final String? originId;
   final String? destinationId;
 
-  /// null shows every floor. Set it to dim the others.
+  /// The one floor to show. null shows every floor stacked, with the route
+  /// running through them.
   final int? focusedFloor;
 
   /// 1.0 is flat, 0.5 is steeply tilted. 0.577 (tan 30°) together with a 45°
@@ -160,7 +185,8 @@ class TiltedCampusMap extends StatefulWidget {
   /// [CampusMapController.resetRotation] turns the floors back.
   final double rotation;
 
-  /// Vertical gap between stacked floors, in plan pixels.
+  /// Vertical gap between stacked floors, in plan pixels. About half a floor's
+  /// tilted height, so the stacked floors overlap but each stays readable.
   final double floorGap;
 
   final ValueChanged<MapNode>? onNodeTap;
@@ -176,7 +202,7 @@ class TiltedCampusMap extends StatefulWidget {
     this.focusedFloor,
     this.squash = 0.577,
     this.rotation = -math.pi / 4,
-    this.floorGap = 150,
+    this.floorGap = 400,
     this.onNodeTap,
     this.controller,
   });
@@ -224,13 +250,18 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
   _View? _view;
   int _topFloor = 0;
 
-  /// Plan points that outline what there is to see: every node, plus the
-  /// corners of any plan with no nodes yet. Fitting to these instead of the
-  /// image rectangles keeps a plan's empty corners from shrinking the map.
+  /// Plan points that outline what there is to see on the shown floors: every
+  /// node, plus the corners of any plan with no nodes yet. Fitting to these
+  /// instead of the image rectangles keeps a plan's empty corners from
+  /// shrinking the map.
   List<(Offset, int)> _outline = const [];
 
   _View? _glideFrom;
   _View? _glideTo;
+
+  /// What the running glide was asked for, before [_clamp]; kept so the
+  /// target can be clamped again when the shown floor changes mid-glide.
+  _View? _glideWanted;
 
   _View? _flingFrom;
   Offset _flingDirection = Offset.zero;
@@ -258,7 +289,29 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
         old.squash != widget.squash ||
         old.floorGap != widget.floorGap) {
       _viewport = null; // measure again on the next build
+    } else if (old.focusedFloor != widget.focusedFloor && _view != null) {
+      _traceOutline();
+      _followFloor(old.focusedFloor, widget.focusedFloor);
     }
+  }
+
+  /// Keeps the view sensible when the shown floor changes: the same spot on
+  /// the new floor, or every floor in view when all of them are shown.
+  void _followFloor(int? from, int? to) {
+    if (_glide.isAnimating) {
+      // The parent just asked for a glide, e.g. to a place on the new
+      // floor; aim it again now that the new floor's outline is known.
+      final wanted = _glideWanted;
+      if (wanted != null) _glideTo = _clamp(wanted);
+      return;
+    }
+    final v = _view!;
+    if (from == null || to == null) {
+      _glideToView(_wholeMap(v.azimuth));
+      return;
+    }
+    final camera = v.camera + _untilt(_lift(to) - _lift(from), v.azimuth);
+    _view = _clamp(_View(camera, v.zoom, v.azimuth));
   }
 
   @override
@@ -371,21 +424,33 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
   void _measure(Size size) {
     _viewport = size;
     _topFloor = widget.plans.map((p) => p.floor).reduce(math.max);
-    final mapped = {for (final n in widget.graph.nodes) n.floor};
-    _outline = [
-      for (final n in widget.graph.nodes) (Offset(n.x, n.y), n.floor),
-      for (final p in widget.plans)
-        if (!mapped.contains(p.floor))
-          for (final corner in [
-            Offset.zero,
-            Offset(p.width, 0),
-            Offset(0, p.height),
-            Offset(p.width, p.height),
-          ])
-            (corner, p.floor),
-    ];
+    _traceOutline();
     final v = _view;
     _view = v == null ? _wholeMap(widget.rotation) : _clamp(v);
+  }
+
+  void _traceOutline() {
+    List<(Offset, int)> trace(bool Function(int floor) shown) {
+      final mapped = {for (final n in widget.graph.nodes) n.floor};
+      return [
+        for (final n in widget.graph.nodes)
+          if (shown(n.floor)) (Offset(n.x, n.y), n.floor),
+        for (final p in widget.plans)
+          if (shown(p.floor) && !mapped.contains(p.floor))
+            for (final corner in [
+              Offset.zero,
+              Offset(p.width, 0),
+              Offset(0, p.height),
+              Offset(p.width, p.height),
+            ])
+              (corner, p.floor),
+      ];
+    }
+
+    final focused = widget.focusedFloor;
+    final outline = trace((floor) => focused == null || floor == focused);
+    // A focused floor with nothing on it falls back to the whole building.
+    _outline = outline.isNotEmpty ? outline : trace((_) => true);
   }
 
   // ------------------------------------------------------------ motion
@@ -399,6 +464,7 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
     if (_view == null) return;
     _stopMotion();
     _glideFrom = _view;
+    _glideWanted = target;
     _glideTo = _clamp(target);
     _glide.forward(from: 0);
   }
@@ -592,8 +658,25 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
   }
 
   Widget _buildMap(_View v) {
-    final sorted = [...widget.plans]
-      ..sort((a, b) => a.floor.compareTo(b.floor));
+    final focused = widget.focusedFloor;
+    // Lower floors first, so each floor is drawn over the one below it.
+    final shown = [
+      for (final p in widget.plans)
+        if (focused == null || p.floor == focused) p,
+    ]..sort((a, b) => a.floor.compareTo(b.floor));
+
+    // Every floor at once is an overview: the stacked floors and the route,
+    // each floor tagged just left of its building.
+    final overview = focused == null && widget.plans.length > 1;
+    final tags = <int, Offset>{};
+    if (overview) {
+      for (final (plan, floor) in _outline) {
+        final s = _toScreen(v, plan, floor);
+        final left = tags[floor];
+        if (left == null || s.dx < left.dx) tags[floor] = s;
+      }
+      tags.updateAll((_, s) => s - Offset(_outlineMargin * v.zoom, 0));
+    }
 
     return Listener(
       onPointerSignal: _onPointerSignal,
@@ -602,42 +685,36 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
         onScaleStart: _onScaleStart,
         onScaleUpdate: _onScaleUpdate,
         onScaleEnd: _onScaleEnd,
-        onTapUp: _onTapUp,
+        // The overview shows no places to tap.
+        onTapUp: overview ? null : _onTapUp,
         child: Stack(
           children: [
-            for (final p in sorted)
+            for (final p in shown)
               Positioned(
                 left: 0,
                 top: 0,
                 child: Transform(
                   transform: _planMatrix(v, p.floor),
-                  child: Opacity(
-                    opacity:
-                        widget.focusedFloor == null ||
-                            widget.focusedFloor == p.floor
-                        ? 1.0
-                        : 0.22,
-                    // No sheet behind the image: plans are transparent PNGs
-                    // that carry their own walls and shadows.
-                    child: SizedBox(
+                  // No sheet behind the image: plans are transparent PNGs that
+                  // carry their own walls and shadows.
+                  child: SizedBox(
+                    width: p.width,
+                    height: p.height,
+                    child: Image.asset(
+                      p.asset,
                       width: p.width,
                       height: p.height,
-                      child: Image.asset(
-                        p.asset,
-                        width: p.width,
-                        height: p.height,
-                        fit: BoxFit.fill,
-                        filterQuality: FilterQuality.medium,
-                        errorBuilder: (_, _, _) => ColoredBox(
-                          color: const Color(0xFFEDF1EB),
-                          child: Center(
-                            child: Text(
-                              'Missing asset:\n${p.asset}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF9B2C2C),
-                              ),
+                      fit: BoxFit.fill,
+                      filterQuality: FilterQuality.medium,
+                      errorBuilder: (_, _, _) => ColoredBox(
+                        color: const Color(0xFFEDF1EB),
+                        child: Center(
+                          child: Text(
+                            'Missing asset:\n${p.asset}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF9B2C2C),
                             ),
                           ),
                         ),
@@ -657,7 +734,9 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
                     routeIds: widget.routeIds,
                     originId: widget.originId,
                     destinationId: widget.destinationId,
-                    focusedFloor: widget.focusedFloor,
+                    focusedFloor: focused,
+                    overview: overview,
+                    floorTags: tags,
                   ),
                 ),
               ),
@@ -711,30 +790,46 @@ TextPainter _label(String text, {required bool bold}) =>
       )..layout(maxWidth: 110),
     );
 
-TextPainter _icon(IconData icon, Color color, {bool halo = false}) =>
-    _paintCache.putIfAbsent(
-      'icon:${icon.codePoint}:${color.toARGB32()}:$halo',
-      () => TextPainter(
-        text: TextSpan(
-          text: String.fromCharCode(icon.codePoint),
-          style: TextStyle(
-            fontFamily: icon.fontFamily,
-            package: icon.fontPackage,
-            fontSize: _markerSize,
-            height: 1,
-            color: halo ? null : color,
-            foreground: halo
-                ? (Paint()
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = 4
-                    ..strokeJoin = StrokeJoin.round
-                    ..color = Colors.white)
-                : null,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout(),
-    );
+/// White bold text for the floor badges and tags.
+TextPainter _badgeText(String text, Color color) => _paintCache.putIfAbsent(
+  'badge:${color.toARGB32()}:$text',
+  () => TextPainter(
+    text: TextSpan(
+      text: text,
+      style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout(),
+);
+
+TextPainter _icon(
+  IconData icon,
+  Color color, {
+  bool halo = false,
+  double size = _markerSize,
+}) => _paintCache.putIfAbsent(
+  'icon:${icon.codePoint}:${color.toARGB32()}:$halo:$size',
+  () => TextPainter(
+    text: TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontFamily: icon.fontFamily,
+        package: icon.fontPackage,
+        fontSize: size,
+        height: 1,
+        color: halo ? null : color,
+        foreground: halo
+            ? (Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 4
+                ..strokeJoin = StrokeJoin.round
+                ..color = Colors.white)
+            : null,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout(),
+);
 
 /// A pin or flag drawn at a node: [tip] is where on the icon, as a fraction
 /// of its size, touches the node.
@@ -752,6 +847,12 @@ class _OverlayPainter extends CustomPainter {
   final String? destinationId;
   final int? focusedFloor;
 
+  /// Every floor stacked: only the route and its places are drawn.
+  final bool overview;
+
+  /// Where each floor's name goes in the overview: the right end of its tag.
+  final Map<int, Offset> floorTags;
+
   _OverlayPainter({
     required this.graph,
     required this.project,
@@ -761,6 +862,8 @@ class _OverlayPainter extends CustomPainter {
     this.originId,
     this.destinationId,
     this.focusedFloor,
+    this.overview = false,
+    this.floorTags = const {},
   });
 
   bool _visible(MapNode n) => focusedFloor == null || n.floor == focusedFloor;
@@ -782,7 +885,7 @@ class _OverlayPainter extends CustomPainter {
 
     // corridors
     final corridor = stroke(const Color(0x55C6D2C8), 3);
-    for (final e in graph.edges) {
+    for (final e in overview ? const <MapEdge>[] : graph.edges) {
       final a = byId[e.from], b = byId[e.to];
       if (a == null || b == null) continue;
       if (!_visible(a) || !_visible(b)) continue;
@@ -795,11 +898,10 @@ class _OverlayPainter extends CustomPainter {
     final legs = <(Offset, Offset, bool)>[];
     for (var i = 0; i < route.length - 1; i++) {
       final a = route[i], b = route[i + 1];
-      if (focusedFloor != null &&
-          (a.floor != focusedFloor && b.floor != focusedFloor)) {
-        continue;
-      }
-      legs.add((at[a.id]!, at[b.id]!, a.floor != b.floor));
+      final hop = a.floor != b.floor;
+      // On one floor, a stairs hop shows as a badge instead of a line.
+      if (focusedFloor != null && (hop || a.floor != focusedFloor)) continue;
+      legs.add((at[a.id]!, at[b.id]!, hop));
     }
     final halo = stroke(Colors.white, 10);
     for (final (a, b, _) in legs) {
@@ -824,6 +926,7 @@ class _OverlayPainter extends CustomPainter {
       if (!area.contains(p)) continue;
       if (n.id == originId || n.id == destinationId) continue; // markers
       final lit = onRoute.contains(n.id);
+      if (overview && !lit) continue;
 
       if (n.isTransit) {
         if (lit) {
@@ -877,6 +980,25 @@ class _OverlayPainter extends CustomPainter {
       labels.add((m.node, at[m.node.id]!, 0));
     }
 
+    // On one floor, a badge at the stairs or lift where the route leaves it:
+    // which way to go and the floor where the walk carries on.
+    final badges = <(Rect, bool, String)>[];
+    if (focusedFloor != null) {
+      for (final change in floorChanges(route)) {
+        if (change.from.floor != focusedFloor) continue;
+        final p = at[change.from.id]!;
+        final floor = '${change.to.floor}F';
+        final box = Rect.fromLTWH(
+          p.dx + 8,
+          p.dy - 28,
+          6 + 13 + 2 + _badgeText(floor, Colors.white).width + 8,
+          20,
+        );
+        badges.add((box, change.to.floor > change.from.floor, floor));
+        taken.add(box);
+      }
+    }
+
     // Labels go in order of importance and skip any spot already used, so
     // zooming in shows more names instead of a pile of overlapping ones.
     labels.sort((a, b) => a.$3.compareTo(b.$3));
@@ -897,6 +1019,28 @@ class _OverlayPainter extends CustomPainter {
       tp.paint(canvas, Offset(box.left + 4, box.top + 2));
     }
 
+    for (final (box, up, floor) in badges) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(box.inflate(1.5), const Radius.circular(11.5)),
+        Paint()..color = Colors.white,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(box, const Radius.circular(10)),
+        Paint()..color = _routeBlue,
+      );
+      final arrow = _icon(
+        up ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+        Colors.white,
+        size: 13,
+      );
+      arrow.paint(canvas, Offset(box.left + 6, box.center.dy - 6.5));
+      final text = _badgeText(floor, Colors.white);
+      text.paint(
+        canvas,
+        Offset(box.left + 6 + 13 + 2, box.center.dy - text.height / 2),
+      );
+    }
+
     for (final m in markers) {
       final p = at[m.node.id]!;
       canvas.drawCircle(p, 5.5, Paint()..color = Colors.white);
@@ -904,6 +1048,27 @@ class _OverlayPainter extends CustomPainter {
       final topLeft = p - m.tip * _markerSize;
       _icon(m.icon, m.color, halo: true).paint(canvas, topLeft);
       _icon(m.icon, m.color).paint(canvas, topLeft);
+    }
+
+    // The overview names each floor beside its building.
+    for (final MapEntry(key: floor, value: anchor) in floorTags.entries) {
+      final text = _badgeText('${floor}F', _routeBlue);
+      final box = Rect.fromLTWH(
+        // Beside the building, but never off the map's left edge.
+        math.max(8, anchor.dx - text.width - 16),
+        anchor.dy - 11,
+        text.width + 16,
+        22,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(box, const Radius.circular(11)),
+        Paint()..color = Colors.white,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(box, const Radius.circular(11)),
+        stroke(_routeBlue, 1.2),
+      );
+      text.paint(canvas, Offset(box.left + 8, box.center.dy - text.height / 2));
     }
   }
 
@@ -933,7 +1098,8 @@ class _OverlayPainter extends CustomPainter {
       old.routeIds != routeIds ||
       old.originId != originId ||
       old.destinationId != destinationId ||
-      old.focusedFloor != focusedFloor;
+      old.focusedFloor != focusedFloor ||
+      old.overview != overview;
 }
 
 // ---------------------------------------------------------------- usage

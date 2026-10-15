@@ -37,8 +37,9 @@ class CampusMapScreen extends StatefulWidget {
   final CampusGraph graph;
   final List<FloorPlan> plans;
 
-  /// Prim's pathway tree over [graph], built once by whoever loads the graph.
-  final PathwayTree pathways;
+  /// The pathways over [graph] (Prim's, one tree per floor), built once by
+  /// whoever loads the graph.
+  final FloorPathways pathways;
 
   /// Called each time a pathway is shown, e.g. to record the search.
   final void Function(MapNode from, MapNode to)? onRouteShown;
@@ -63,8 +64,13 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
   final _map = CampusMapController();
   MapNode? _start;
   MapNode? _destination;
-  int? _focusedFloor;
   List<String> _routeIds = const [];
+
+  late final List<int> _floors =
+      widget.plans.map((p) => p.floor).toSet().toList()..sort();
+
+  /// The floor on show; null shows every floor stacked. Starts on the lowest.
+  late int? _focusedFloor = _floors.firstOrNull;
 
   /// Set once GENERATE ROUTE is pressed with a field still empty, so the
   /// empty fields say what they need.
@@ -152,7 +158,24 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
 
   void _recenter() {
     final from = _start;
-    if (from != null) _map.centerOn(from.id, zoom: _routeZoom);
+    if (from == null) return;
+    setState(() => _focusedFloor = from.floor);
+    _map.centerOn(from.id, zoom: _routeZoom);
+  }
+
+  List<MapNode> get _route => [
+    for (final id in _routeIds) ?widget.graph.byId(id),
+  ];
+
+  /// Shows [floor], or every floor when null. On a floor the route crosses,
+  /// the map goes to where the route reaches that floor.
+  void _showFloor(int? floor) {
+    setState(() => _focusedFloor = floor);
+    if (floor == null) return;
+    final arrival = _route.where((n) => n.floor == floor).firstOrNull;
+    if (arrival != null) {
+      _map.centerOn(arrival.id, zoom: math.max(_map.zoom, _placeZoom));
+    }
   }
 
   void _say(String text) {
@@ -165,7 +188,10 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final floors = widget.plans.map((p) => p.floor).toSet().toList()..sort();
+    // Where the route leaves the floor on show, if it does.
+    final change = floorChanges(
+      _route,
+    ).where((c) => c.from.floor == _focusedFloor).firstOrNull;
 
     final map = _MapCard(
       graph: widget.graph,
@@ -175,10 +201,16 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
       start: _start,
       destination: _destination,
       routeIds: _routeIds,
-      floors: floors,
-      onFloorChanged: (f) => setState(() => _focusedFloor = f),
+      floors: _floors,
+      onFloorChanged: _showFloor,
       onNodeTap: _onNodeTap,
       onRecenter: _routeIds.isEmpty ? null : _recenter,
+      hint: change == null
+          ? null
+          : _FloorHint(
+              change: change,
+              onTap: () => _showFloor(change.to.floor),
+            ),
     );
     final panel = _RoutePanel(
       start: _start,
@@ -272,6 +304,9 @@ class _MapCard extends StatelessWidget {
   /// Glides back to the starting point; the button shows only when set.
   final VoidCallback? onRecenter;
 
+  /// Shown in the bottom-left corner, e.g. which stairs to take next.
+  final Widget? hint;
+
   const _MapCard({
     required this.graph,
     required this.plans,
@@ -284,11 +319,13 @@ class _MapCard extends StatelessWidget {
     required this.onFloorChanged,
     required this.onNodeTap,
     required this.onRecenter,
+    this.hint,
   });
 
   @override
   Widget build(BuildContext context) {
     final recenter = onRecenter;
+    final hint = this.hint;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -348,7 +385,73 @@ class _MapCard extends StatelessWidget {
                   ),
                 ),
               ),
+            if (hint != null)
+              Positioned(
+                left: 10,
+                right: 62, // clear of the starting-point button
+                bottom: 10,
+                child: Align(alignment: Alignment.bottomLeft, child: hint),
+              ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Which stairs or lift the route takes off the floor on show. Tapping it
+/// shows the floor where the walk carries on.
+class _FloorHint extends StatelessWidget {
+  final FloorChange change;
+  final VoidCallback onTap;
+  const _FloorHint({required this.change, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final up = change.to.floor > change.from.floor;
+    // "5F Stairs 3 Near Gate 2" reads as "Stairs 3 Near Gate 2" here.
+    final via = change.from.name.replaceFirst(RegExp(r'^\d+F\s+'), '');
+
+    return Material(
+      color: _Palette.blue,
+      borderRadius: BorderRadius.circular(20),
+      elevation: 2,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 10, 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                change.from.kind == 'elevator'
+                    ? Icons.elevator_outlined
+                    : Icons.stairs_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Take $via ${up ? 'up' : 'down'} to ${change.to.floor}F',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -402,7 +505,7 @@ class _FloorPicker extends StatelessWidget {
           pill('All', value == null, () => onChanged(null)),
           for (final f in floors.reversed) ...[
             const SizedBox(height: 3),
-            pill('$f', value == f, () => onChanged(f)),
+            pill('${f}F', value == f, () => onChanged(f)),
           ],
         ],
       ),

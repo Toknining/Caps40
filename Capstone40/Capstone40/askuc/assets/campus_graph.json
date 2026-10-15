@@ -9,6 +9,20 @@
       "image_width": 1216,
       "image_height": 864,
       "scale_m_per_px": 1
+    },
+    {
+      "floor": 6,
+      "building": "Main Building",
+      "image_width": 1216,
+      "image_height": 864,
+      "scale_m_per_px": 1
+    },
+    {
+      "floor": 7,
+      "building": "Main Building",
+      "image_width": 1184,
+      "image_height": 896,
+      "scale_m_per_px": 1
     }
   ],
   "nodes": [
@@ -17,10 +31,10 @@
       "name": "CICS Faculty Room",
       "building": "Main Building",
       "floor": 5,
-      "x": 222.3,
-      "y": 303.2,
-      "x_px": 222.3,
-      "y_px": 303.2,
+      "x": 223.1,
+      "y": 303.9,
+      "x_px": 223.1,
+      "y_px": 303.9,
       "kind": "office",
       "aliases": [
         "Teacher Office"
@@ -182,7 +196,7 @@
     },
     {
       "id": "untitled_13",
-      "name": "Female CR",
+      "name": "5F Female CR 3",
       "building": "Main Building",
       "floor": 5,
       "x": 397.4,
@@ -398,7 +412,7 @@
     },
     {
       "id": "untitled_28",
-      "name": "Staff Male CR",
+      "name": "5F Staff Male CR 1",
       "building": "Main Building",
       "floor": 5,
       "x": 156.6,
@@ -412,13 +426,13 @@
     },
     {
       "id": "untitled_29",
-      "name": "Staff Female CR",
+      "name": "5F Staff Female CR 1",
       "building": "Main Building",
       "floor": 5,
-      "x": 156.2,
-      "y": 241,
-      "x_px": 156.2,
-      "y_px": 241,
+      "x": 156.8,
+      "y": 239.3,
+      "x_px": 156.8,
+      "y_px": 239.3,
       "kind": "restroom",
       "aliases": [
         "Staff Female CR(Near Elevator A)"
@@ -578,7 +592,7 @@
     },
     {
       "id": "untitled_42",
-      "name": "Male CR",
+      "name": "5F Male CR 2",
       "building": "Main Building",
       "floor": 5,
       "x": 668.3,
@@ -592,7 +606,7 @@
     },
     {
       "id": "untitled_43",
-      "name": "Male CR",
+      "name": "5F Male CR 3",
       "building": "Main Building",
       "floor": 5,
       "x": 717.4,
@@ -606,7 +620,7 @@
     },
     {
       "id": "untitled_46",
-      "name": "Female CR",
+      "name": "5F Female CR 1",
       "building": "Main Building",
       "floor": 5,
       "x": 768.5,
@@ -620,7 +634,7 @@
     },
     {
       "id": "untitled_47",
-      "name": "Female CR",
+      "name": "5F Female CR 2",
       "building": "Main Building",
       "floor": 5,
       "x": 839.6,
@@ -825,7 +839,7 @@
     },
     {
       "id": "untitled_63",
-      "name": "Male CR",
+      "name": "5F Male CR 5",
       "building": "Main Building",
       "floor": 5,
       "x": 847.9,
@@ -911,7 +925,7 @@
     },
     {
       "id": "untitled_70",
-      "name": "HS Stairs A 5ft",
+      "name": "5F Stairs 3 Near Gate 2",
       "building": "Main Building",
       "floor": 5,
       "x": 635.4,
@@ -929,7 +943,7 @@
     },
     {
       "id": "untitled_71",
-      "name": "HS Stairs B 5ft ",
+      "name": "5F Stairs 5 Near Gate 3",
       "building": "Main Building",
       "floor": 5,
       "x": 802.6,
@@ -938,12 +952,12 @@
       "y_px": 576.9,
       "kind": "stairs",
       "aliases": [
-        "stairs near gate 2"
+        "stairs near gate 3"
       ]
     },
     {
       "id": "untitled_72",
-      "name": "Main Stairs A 5ft",
+      "name": "5F Stairs 2 Near Gate 2",
       "building": "Main Building",
       "floor": 5,
       "x": 397.4,
@@ -957,13 +971,13 @@
     },
     {
       "id": "untitled_73",
-      "name": "Main Stairs B 5ft",
+      "name": "5F Stairs 1 Near Gate 1",
       "building": "Main Building",
       "floor": 5,
-      "x": 181.1,
-      "y": 303.2,
-      "x_px": 181.1,
-      "y_px": 303.2,
+      "x": 147.9,
+      "y": 284.7,
+      "x_px": 147.9,
+      "y_px": 284.7,
       "kind": "stairs",
       "aliases": [
         "Stairs near elevator"
@@ -971,25 +985,25 @@
     },
     {
       "id": "untitled_74",
-      "name": "Main Elevator A",
+      "name": "5F Elevator 1",
       "building": "Main Building",
       "floor": 5,
-      "x": 164.9,
-      "y": 284.5,
-      "x_px": 164.9,
-      "y_px": 284.5,
+      "x": 164.7,
+      "y": 284.7,
+      "x_px": 164.7,
+      "y_px": 284.7,
       "kind": "elevator",
       "aliases": []
     },
     {
       "id": "untitled_75",
-      "name": "Main Stairs C 5ft",
+      "name": "5F Stairs 6 Near Gate 4",
       "building": "Main Building",
       "floor": 5,
-      "x": 433.5,
-      "y": 636.8,
-      "x_px": 433.5,
-      "y_px": 636.8,
+      "x": 422.7,
+      "y": 622.8,
+      "x_px": 422.7,
+      "y_px": 622.8,
       "kind": "stairs",
       "aliases": [
         "Stairs Near Gate 4"
@@ -997,7 +1011,7 @@
     },
     {
       "id": "untitled_76",
-      "name": "Main Stairs D 5ft",
+      "name": "5F Stairs 8 Near Gate 4",
       "building": "Main Building",
       "floor": 5,
       "x": 184.3,
@@ -1012,10 +1026,10 @@
       "name": "Main COR N1 5F",
       "building": "Main Building",
       "floor": 5,
-      "x": 183.6,
-      "y": 224.7,
-      "x_px": 183.6,
-      "y_px": 224.7,
+      "x": 183.7,
+      "y": 226.1,
+      "x_px": 183.7,
+      "y_px": 226.1,
       "kind": "hall",
       "aliases": []
     },
@@ -1393,7 +1407,7 @@
     },
     {
       "id": "untitled_108",
-      "name": "HS Stairs C 5ft ",
+      "name": "5F Stairs 4 Near Gate 3",
       "building": "Main Building",
       "floor": 5,
       "x": 1081.2,
@@ -1482,10 +1496,10 @@
       "name": "Main COR S6 5F",
       "building": "Main Building",
       "floor": 5,
-      "x": 562.3,
-      "y": 609.5,
-      "x_px": 562.3,
-      "y_px": 609.5,
+      "x": 563.1,
+      "y": 606,
+      "x_px": 563.1,
+      "y_px": 606,
       "kind": "hall",
       "aliases": []
     },
@@ -1494,10 +1508,10 @@
       "name": "Main COR S7 5F",
       "building": "Main Building",
       "floor": 5,
-      "x": 526.5,
-      "y": 608.8,
-      "x_px": 526.5,
-      "y_px": 608.8,
+      "x": 526.1,
+      "y": 606.4,
+      "x_px": 526.1,
+      "y_px": 606.4,
       "kind": "hall",
       "aliases": []
     },
@@ -1507,9 +1521,9 @@
       "building": "Main Building",
       "floor": 5,
       "x": 526.2,
-      "y": 624.8,
+      "y": 622.8,
       "x_px": 526.2,
-      "y_px": 624.8,
+      "y_px": 622.8,
       "kind": "hall",
       "aliases": []
     },
@@ -1518,10 +1532,10 @@
       "name": "Main COR S9 5F",
       "building": "Main Building",
       "floor": 5,
-      "x": 459.2,
-      "y": 624.6,
-      "x_px": 459.2,
-      "y_px": 624.6,
+      "x": 480.5,
+      "y": 622.8,
+      "x_px": 480.5,
+      "y_px": 622.8,
       "kind": "hall",
       "aliases": []
     },
@@ -1530,10 +1544,10 @@
       "name": "Main COR S10 5F",
       "building": "Main Building",
       "floor": 5,
-      "x": 458.9,
-      "y": 637,
-      "x_px": 458.9,
-      "y_px": 637,
+      "x": 446.6,
+      "y": 623.1,
+      "x_px": 446.6,
+      "y_px": 623.1,
       "kind": "hall",
       "aliases": []
     },
@@ -1722,9 +1736,9 @@
       "name": "Main COR W9 5F",
       "building": "Main Building",
       "floor": 5,
-      "x": 242.5,
+      "x": 242.1,
       "y": 260.4,
-      "x_px": 242.5,
+      "x_px": 242.1,
       "y_px": 260.4,
       "kind": "hall",
       "aliases": []
@@ -1734,10 +1748,10 @@
       "name": "Main COR W10 5F",
       "building": "Main Building",
       "floor": 5,
-      "x": 183.6,
-      "y": 263.5,
-      "x_px": 183.6,
-      "y_px": 263.5,
+      "x": 183.9,
+      "y": 259.2,
+      "x_px": 183.9,
+      "y_px": 259.2,
       "kind": "hall",
       "aliases": []
     },
@@ -1746,10 +1760,10 @@
       "name": "Main COR W11 5F",
       "building": "Main Building",
       "floor": 5,
-      "x": 163.2,
-      "y": 260.6,
-      "x_px": 163.2,
-      "y_px": 260.6,
+      "x": 148.5,
+      "y": 259.3,
+      "x_px": 148.5,
+      "y_px": 259.3,
       "kind": "hall",
       "aliases": []
     },
@@ -2007,7 +2021,7 @@
     },
     {
       "id": "untitled_160",
-      "name": "Male CR",
+      "name": "5F Male CR 1",
       "building": "Main Building",
       "floor": 5,
       "x": 128.7,
@@ -2028,6 +2042,3005 @@
       "y": 429,
       "x_px": 241.1,
       "y_px": 429,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_1",
+      "name": "Untitled 1",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 303.6,
+      "y": 390.9,
+      "x_px": 303.6,
+      "y_px": 390.9,
+      "kind": "office",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_2",
+      "name": "Room 631A",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 302.9,
+      "y": 390,
+      "x_px": 302.9,
+      "y_px": 390,
+      "kind": "classroom",
+      "aliases": [
+        "Room 631A",
+        "631A"
+      ]
+    },
+    {
+      "id": "f6_untitled_3",
+      "name": "Room 631B",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 349.1,
+      "y": 391.5,
+      "x_px": 349.1,
+      "y_px": 391.5,
+      "kind": "classroom",
+      "aliases": [
+        "Room 631B",
+        "631B"
+      ]
+    },
+    {
+      "id": "f6_untitled_4",
+      "name": "Room 631C",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 395.3,
+      "y": 391.9,
+      "x_px": 395.3,
+      "y_px": 391.9,
+      "kind": "classroom",
+      "aliases": [
+        "Room 631C",
+        "631C"
+      ]
+    },
+    {
+      "id": "f6_untitled_5",
+      "name": "Main_6F_C1",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 302.1,
+      "y": 422.5,
+      "x_px": 302.1,
+      "y_px": 422.5,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_6",
+      "name": "Main_6F_C2",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 348.5,
+      "y": 422.8,
+      "x_px": 348.5,
+      "y_px": 422.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_7",
+      "name": "Main_6F_C3",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 395.2,
+      "y": 423.6,
+      "x_px": 395.2,
+      "y_px": 423.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_8",
+      "name": "HRM STORAGE ROOM",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 154.4,
+      "y": 222.8,
+      "x_px": 154.4,
+      "y_px": 222.8,
+      "kind": "facility",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_9",
+      "name": "6F Female CR 4",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 131.3,
+      "y": 256.2,
+      "x_px": 131.3,
+      "y_px": 256.2,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_10",
+      "name": "HRM TRAINING RESTAURANT 638",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 208.9,
+      "y": 173,
+      "x_px": 208.9,
+      "y_px": 173,
+      "kind": "facility",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_11",
+      "name": "638",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 261.4,
+      "y": 161,
+      "x_px": 261.4,
+      "y_px": 161,
+      "kind": "classroom",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_12",
+      "name": "HRM LAB2 637",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 330.9,
+      "y": 143.9,
+      "x_px": 330.9,
+      "y_px": 143.9,
+      "kind": "lab",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_13",
+      "name": "HRM STORAGE ROOM 635",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 380.9,
+      "y": 131.1,
+      "x_px": 380.9,
+      "y_px": 131.1,
+      "kind": "facility",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_14",
+      "name": "HRM LAB1 639",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 424.4,
+      "y": 173,
+      "x_px": 424.4,
+      "y_px": 173,
+      "kind": "lab",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_15",
+      "name": "Room 640",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 421.7,
+      "y": 252.3,
+      "x_px": 421.7,
+      "y_px": 252.3,
+      "kind": "classroom",
+      "aliases": [
+        "Room 640",
+        "640"
+      ]
+    },
+    {
+      "id": "f6_untitled_16",
+      "name": "Room 641",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 421.6,
+      "y": 298.5,
+      "x_px": 421.6,
+      "y_px": 298.5,
+      "kind": "classroom",
+      "aliases": [
+        "Room 641",
+        "641"
+      ]
+    },
+    {
+      "id": "f6_untitled_17",
+      "name": "Room 642",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 434.6,
+      "y": 343.8,
+      "x_px": 434.6,
+      "y_px": 343.8,
+      "kind": "classroom",
+      "aliases": [
+        "Room 642",
+        "642"
+      ]
+    },
+    {
+      "id": "f6_untitled_18",
+      "name": "Room 643",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 434.6,
+      "y": 391.8,
+      "x_px": 434.6,
+      "y_px": 391.8,
+      "kind": "classroom",
+      "aliases": [
+        "Room 643",
+        "643"
+      ]
+    },
+    {
+      "id": "f6_untitled_19",
+      "name": "Room 640E",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 432.7,
+      "y": 439.3,
+      "x_px": 432.7,
+      "y_px": 439.3,
+      "kind": "classroom",
+      "aliases": [
+        "Room 640E",
+        "640E"
+      ]
+    },
+    {
+      "id": "f6_untitled_20",
+      "name": "Room 641E",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 433.3,
+      "y": 482.7,
+      "x_px": 433.3,
+      "y_px": 482.7,
+      "kind": "classroom",
+      "aliases": [
+        "Room 641E",
+        "641E"
+      ]
+    },
+    {
+      "id": "f6_untitled_21",
+      "name": "Room 642E",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 433.4,
+      "y": 527.5,
+      "x_px": 433.4,
+      "y_px": 527.5,
+      "kind": "classroom",
+      "aliases": [
+        "Room 642E",
+        "642E"
+      ]
+    },
+    {
+      "id": "f6_untitled_22",
+      "name": "Room 643E",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 432.1,
+      "y": 571.7,
+      "x_px": 432.1,
+      "y_px": 571.7,
+      "kind": "classroom",
+      "aliases": [
+        "Room 643E",
+        "643E"
+      ]
+    },
+    {
+      "id": "f6_untitled_23",
+      "name": "6F Stairs 6 Near Gate 4",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 420,
+      "y": 620.3,
+      "x_px": 420,
+      "y_px": 620.3,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_24",
+      "name": "Room 617",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 432.7,
+      "y": 648.7,
+      "x_px": 432.7,
+      "y_px": 648.7,
+      "kind": "classroom",
+      "aliases": [
+        "Room 617",
+        "617"
+      ]
+    },
+    {
+      "id": "f6_untitled_25",
+      "name": "Room 618",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 431.2,
+      "y": 702.1,
+      "x_px": 431.2,
+      "y_px": 702.1,
+      "kind": "classroom",
+      "aliases": [
+        "Room 618",
+        "618"
+      ]
+    },
+    {
+      "id": "f6_untitled_26",
+      "name": "Room 619",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 429.9,
+      "y": 751.5,
+      "x_px": 429.9,
+      "y_px": 751.5,
+      "kind": "classroom",
+      "aliases": [
+        "Room 619",
+        "619"
+      ]
+    },
+    {
+      "id": "f6_untitled_27",
+      "name": "Allied Engineering Organizations Office 620",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 429.3,
+      "y": 800.3,
+      "x_px": 429.3,
+      "y_px": 800.3,
+      "kind": "office",
+      "aliases": [
+        "Allied Engineering Organizations Office 620",
+        "620"
+      ]
+    },
+    {
+      "id": "f6_untitled_28",
+      "name": "6F Male CR 4",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 398.5,
+      "y": 826.5,
+      "x_px": 398.5,
+      "y_px": 826.5,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_29",
+      "name": "Room 621",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 342.9,
+      "y": 826.2,
+      "x_px": 342.9,
+      "y_px": 826.2,
+      "kind": "classroom",
+      "aliases": [
+        "Room 621",
+        "621"
+      ]
+    },
+    {
+      "id": "f6_untitled_30",
+      "name": "Room 622",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 290.2,
+      "y": 827.7,
+      "x_px": 290.2,
+      "y_px": 827.7,
+      "kind": "classroom",
+      "aliases": [
+        "Room 622",
+        "622"
+      ]
+    },
+    {
+      "id": "f6_untitled_31",
+      "name": "Room 623",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 237.3,
+      "y": 829.4,
+      "x_px": 237.3,
+      "y_px": 829.4,
+      "kind": "classroom",
+      "aliases": [
+        "Room 623",
+        "623"
+      ]
+    },
+    {
+      "id": "f6_untitled_32",
+      "name": "6F Stairs 8 Near Gate 4",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 172.3,
+      "y": 834.1,
+      "x_px": 172.3,
+      "y_px": 834.1,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_33",
+      "name": "Room 624",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 212.8,
+      "y": 788.6,
+      "x_px": 212.8,
+      "y_px": 788.6,
+      "kind": "classroom",
+      "aliases": [
+        "Room 624",
+        "624"
+      ]
+    },
+    {
+      "id": "f6_untitled_34",
+      "name": "Room 625",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 213.6,
+      "y": 733,
+      "x_px": 213.6,
+      "y_px": 733,
+      "kind": "classroom",
+      "aliases": [
+        "Room 625",
+        "625"
+      ]
+    },
+    {
+      "id": "f6_untitled_35",
+      "name": "Room 626",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 214.7,
+      "y": 681.1,
+      "x_px": 214.7,
+      "y_px": 681.1,
+      "kind": "classroom",
+      "aliases": [
+        "Room 626",
+        "626"
+      ]
+    },
+    {
+      "id": "f6_untitled_36",
+      "name": "Room 627",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 212.3,
+      "y": 627.4,
+      "x_px": 212.3,
+      "y_px": 627.4,
+      "kind": "classroom",
+      "aliases": [
+        "Room 627",
+        "627"
+      ]
+    },
+    {
+      "id": "f6_untitled_37",
+      "name": "Room 628",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 213.1,
+      "y": 573.1,
+      "x_px": 213.1,
+      "y_px": 573.1,
+      "kind": "classroom",
+      "aliases": [
+        "Room 628",
+        "628"
+      ]
+    },
+    {
+      "id": "f6_untitled_38",
+      "name": "Room 629",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 213.8,
+      "y": 521.8,
+      "x_px": 213.8,
+      "y_px": 521.8,
+      "kind": "classroom",
+      "aliases": [
+        "Room 629",
+        "629"
+      ]
+    },
+    {
+      "id": "f6_untitled_39",
+      "name": "Room 630",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 212.5,
+      "y": 470.8,
+      "x_px": 212.5,
+      "y_px": 470.8,
+      "kind": "classroom",
+      "aliases": [
+        "Room 630",
+        "630"
+      ]
+    },
+    {
+      "id": "f6_untitled_40",
+      "name": "Room 631",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 213.3,
+      "y": 417.9,
+      "x_px": 213.3,
+      "y_px": 417.9,
+      "kind": "classroom",
+      "aliases": [
+        "Room 631",
+        "631"
+      ]
+    },
+    {
+      "id": "f6_untitled_41",
+      "name": "Room 632",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 213.1,
+      "y": 366.4,
+      "x_px": 213.1,
+      "y_px": 366.4,
+      "kind": "classroom",
+      "aliases": [
+        "Room 632",
+        "632"
+      ]
+    },
+    {
+      "id": "f6_untitled_42",
+      "name": "Room 633",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 218.8,
+      "y": 279.4,
+      "x_px": 218.8,
+      "y_px": 279.4,
+      "kind": "classroom",
+      "aliases": [
+        "Room 633",
+        "633"
+      ]
+    },
+    {
+      "id": "f6_untitled_43",
+      "name": "6F Elevator 1",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 168.3,
+      "y": 274.2,
+      "x_px": 168.3,
+      "y_px": 274.2,
+      "kind": "elevator",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_44",
+      "name": "6F Stairs 1 Near Gate 1",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 150.7,
+      "y": 274.3,
+      "x_px": 150.7,
+      "y_px": 274.3,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_45",
+      "name": "6F Stairs 2 Near Gate 2",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 402.4,
+      "y": 127.4,
+      "x_px": 402.4,
+      "y_px": 127.4,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_46",
+      "name": "Highschool Faculty Room 669",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 667.4,
+      "y": 128.2,
+      "x_px": 667.4,
+      "y_px": 128.2,
+      "kind": "office",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_47",
+      "name": "6F Stairs 3 Near Gate 2",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 636.6,
+      "y": 160.6,
+      "x_px": 636.6,
+      "y_px": 160.6,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_48",
+      "name": "Room 668",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 633.4,
+      "y": 202.5,
+      "x_px": 633.4,
+      "y_px": 202.5,
+      "kind": "classroom",
+      "aliases": [
+        "Room 668",
+        "668"
+      ]
+    },
+    {
+      "id": "f6_untitled_49",
+      "name": "Room 667",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 627.9,
+      "y": 250.2,
+      "x_px": 627.9,
+      "y_px": 250.2,
+      "kind": "classroom",
+      "aliases": [
+        "Room 667",
+        "667"
+      ]
+    },
+    {
+      "id": "f6_untitled_50",
+      "name": "Room 666",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 621,
+      "y": 309.3,
+      "x_px": 621,
+      "y_px": 309.3,
+      "kind": "classroom",
+      "aliases": [
+        "Room 666",
+        "666"
+      ]
+    },
+    {
+      "id": "f6_untitled_51",
+      "name": "6F Male CR 2",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 664.6,
+      "y": 332.7,
+      "x_px": 664.6,
+      "y_px": 332.7,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_52",
+      "name": "6F Male CR 3",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 712.5,
+      "y": 337.7,
+      "x_px": 712.5,
+      "y_px": 337.7,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_53",
+      "name": "6F Female CR 1",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 765.3,
+      "y": 335.2,
+      "x_px": 765.3,
+      "y_px": 335.2,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_54",
+      "name": "6F Female CR 2",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 825.3,
+      "y": 328.4,
+      "x_px": 825.3,
+      "y_px": 328.4,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_55",
+      "name": "Room 664",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 523,
+      "y": 416.6,
+      "x_px": 523,
+      "y_px": 416.6,
+      "kind": "classroom",
+      "aliases": [
+        "Room 664",
+        "664"
+      ]
+    },
+    {
+      "id": "f6_untitled_56",
+      "name": "Room 663",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 602.1,
+      "y": 415.2,
+      "x_px": 602.1,
+      "y_px": 415.2,
+      "kind": "classroom",
+      "aliases": [
+        "Room 663",
+        "663"
+      ]
+    },
+    {
+      "id": "f6_untitled_57",
+      "name": "Room 662",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 631.7,
+      "y": 415.4,
+      "x_px": 631.7,
+      "y_px": 415.4,
+      "kind": "classroom",
+      "aliases": [
+        "Room 662",
+        "662"
+      ]
+    },
+    {
+      "id": "f6_untitled_58",
+      "name": "Room 661",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 712.3,
+      "y": 415.2,
+      "x_px": 712.3,
+      "y_px": 415.2,
+      "kind": "classroom",
+      "aliases": [
+        "Room 661",
+        "661"
+      ]
+    },
+    {
+      "id": "f6_untitled_59",
+      "name": "Room 660",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 783,
+      "y": 414.5,
+      "x_px": 783,
+      "y_px": 414.5,
+      "kind": "classroom",
+      "aliases": [
+        "Room 660",
+        "660"
+      ]
+    },
+    {
+      "id": "f6_untitled_60",
+      "name": "Room 650",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 1133.3,
+      "y": 469,
+      "x_px": 1133.3,
+      "y_px": 469,
+      "kind": "office",
+      "aliases": [
+        "Room 650",
+        "650"
+      ]
+    },
+    {
+      "id": "f6_untitled_61",
+      "name": "Room 651",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 1078.4,
+      "y": 469.6,
+      "x_px": 1078.4,
+      "y_px": 469.6,
+      "kind": "classroom",
+      "aliases": [
+        "Room 651",
+        "651"
+      ]
+    },
+    {
+      "id": "f6_untitled_62",
+      "name": "Room 652",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 982.2,
+      "y": 469,
+      "x_px": 982.2,
+      "y_px": 469,
+      "kind": "classroom",
+      "aliases": [
+        "Room 652",
+        "652"
+      ]
+    },
+    {
+      "id": "f6_untitled_63",
+      "name": "Room 653",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 911.3,
+      "y": 469.3,
+      "x_px": 911.3,
+      "y_px": 469.3,
+      "kind": "classroom",
+      "aliases": [
+        "Room 653",
+        "653"
+      ]
+    },
+    {
+      "id": "f6_untitled_64",
+      "name": "Room 654",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 843.9,
+      "y": 470.7,
+      "x_px": 843.9,
+      "y_px": 470.7,
+      "kind": "classroom",
+      "aliases": [
+        "Room 654",
+        "654"
+      ]
+    },
+    {
+      "id": "f6_untitled_65",
+      "name": "Room 655",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 778.3,
+      "y": 471,
+      "x_px": 778.3,
+      "y_px": 471,
+      "kind": "classroom",
+      "aliases": [
+        "Room 655",
+        "655"
+      ]
+    },
+    {
+      "id": "f6_untitled_66",
+      "name": "Room 656",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 752.8,
+      "y": 470.3,
+      "x_px": 752.8,
+      "y_px": 470.3,
+      "kind": "classroom",
+      "aliases": [
+        "Room 656",
+        "656"
+      ]
+    },
+    {
+      "id": "f6_untitled_67",
+      "name": "Room 657",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 662.1,
+      "y": 471.7,
+      "x_px": 662.1,
+      "y_px": 471.7,
+      "kind": "classroom",
+      "aliases": [
+        "Room 657",
+        "657"
+      ]
+    },
+    {
+      "id": "f6_untitled_68",
+      "name": "Room 658",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 610.8,
+      "y": 469.3,
+      "x_px": 610.8,
+      "y_px": 469.3,
+      "kind": "classroom",
+      "aliases": [
+        "Room 658",
+        "658"
+      ]
+    },
+    {
+      "id": "f6_untitled_69",
+      "name": "Room 659",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 556.9,
+      "y": 469,
+      "x_px": 556.9,
+      "y_px": 469,
+      "kind": "classroom",
+      "aliases": [
+        "Room 659",
+        "659"
+      ]
+    },
+    {
+      "id": "f6_untitled_70",
+      "name": "6F Stairs 4 Near Gate 3",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 1044.6,
+      "y": 490.3,
+      "x_px": 1044.6,
+      "y_px": 490.3,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_71",
+      "name": "Room 611",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 810.2,
+      "y": 622.3,
+      "x_px": 810.2,
+      "y_px": 622.3,
+      "kind": "classroom",
+      "aliases": [
+        "Room 611",
+        "611"
+      ]
+    },
+    {
+      "id": "f6_untitled_72",
+      "name": "Room 612",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 792.7,
+      "y": 623,
+      "x_px": 792.7,
+      "y_px": 623,
+      "kind": "classroom",
+      "aliases": [
+        "Room 612",
+        "612"
+      ]
+    },
+    {
+      "id": "f6_untitled_73",
+      "name": "Room 613",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 736.8,
+      "y": 624.6,
+      "x_px": 736.8,
+      "y_px": 624.6,
+      "kind": "classroom",
+      "aliases": [
+        "Room 613",
+        "613"
+      ]
+    },
+    {
+      "id": "f6_untitled_74",
+      "name": "Room 614",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 677.9,
+      "y": 624,
+      "x_px": 677.9,
+      "y_px": 624,
+      "kind": "classroom",
+      "aliases": [
+        "Room 614",
+        "614"
+      ]
+    },
+    {
+      "id": "f6_untitled_75",
+      "name": "Room 615",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 618.2,
+      "y": 625.6,
+      "x_px": 618.2,
+      "y_px": 625.6,
+      "kind": "classroom",
+      "aliases": [
+        "Room 615",
+        "615"
+      ]
+    },
+    {
+      "id": "f6_untitled_76",
+      "name": "Room 616",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 561.7,
+      "y": 623.3,
+      "x_px": 561.7,
+      "y_px": 623.3,
+      "kind": "classroom",
+      "aliases": [
+        "Room 616",
+        "616"
+      ]
+    },
+    {
+      "id": "f6_untitled_77",
+      "name": "6F Stairs 5 Near Gate 3",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 813.9,
+      "y": 578.4,
+      "x_px": 813.9,
+      "y_px": 578.4,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_78",
+      "name": "6F Female CR 5",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 838,
+      "y": 599.2,
+      "x_px": 838,
+      "y_px": 599.2,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_79",
+      "name": "Main_6F_C4",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 395.5,
+      "y": 441,
+      "x_px": 395.5,
+      "y_px": 441,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_80",
+      "name": "Main_6F_C5",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 396.6,
+      "y": 482.9,
+      "x_px": 396.6,
+      "y_px": 482.9,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_81",
+      "name": "Main_6F_C6",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 395.5,
+      "y": 531,
+      "x_px": 395.5,
+      "y_px": 531,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_82",
+      "name": "Main_6F_C7",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 395.2,
+      "y": 573.1,
+      "x_px": 395.2,
+      "y_px": 573.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_83",
+      "name": "Main_6F_C8",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 393.8,
+      "y": 632.1,
+      "x_px": 393.8,
+      "y_px": 632.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_84",
+      "name": "Main_6F_C9",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 394.1,
+      "y": 649.5,
+      "x_px": 394.1,
+      "y_px": 649.5,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_85",
+      "name": "Main_6F_C10",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 393.3,
+      "y": 703.6,
+      "x_px": 393.3,
+      "y_px": 703.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_86",
+      "name": "Main_6F_C11",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 395.2,
+      "y": 753.4,
+      "x_px": 395.2,
+      "y_px": 753.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_87",
+      "name": "Main_6F_C12",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 395.2,
+      "y": 802,
+      "x_px": 395.2,
+      "y_px": 802,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_88",
+      "name": "Main_6F_C14",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 370.4,
+      "y": 801.4,
+      "x_px": 370.4,
+      "y_px": 801.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_89",
+      "name": "Main_6F_C13",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 371.3,
+      "y": 823.5,
+      "x_px": 371.3,
+      "y_px": 823.5,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_90",
+      "name": "Main_6F_C15",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 346.5,
+      "y": 800.4,
+      "x_px": 346.5,
+      "y_px": 800.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_91",
+      "name": "Main_6F_C16",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 289.9,
+      "y": 801.8,
+      "x_px": 289.9,
+      "y_px": 801.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_92",
+      "name": "Main_6F_C17",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 238.3,
+      "y": 805,
+      "x_px": 238.3,
+      "y_px": 805,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_93",
+      "name": "Main_6F_C19",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 238.6,
+      "y": 786.5,
+      "x_px": 238.6,
+      "y_px": 786.5,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_94",
+      "name": "Main_6F_C18",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 173.1,
+      "y": 808.3,
+      "x_px": 173.1,
+      "y_px": 808.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_95",
+      "name": "Main_6F_C20",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 242.7,
+      "y": 730.8,
+      "x_px": 242.7,
+      "y_px": 730.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_96",
+      "name": "Main_6F_C21",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 241.6,
+      "y": 678.3,
+      "x_px": 241.6,
+      "y_px": 678.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_97",
+      "name": "Main_6F_C22",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 242.5,
+      "y": 625.3,
+      "x_px": 242.5,
+      "y_px": 625.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_98",
+      "name": "Main_6F_C23",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 242.4,
+      "y": 573.4,
+      "x_px": 242.4,
+      "y_px": 573.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_99",
+      "name": "Main_6F_C24",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 241.9,
+      "y": 522.3,
+      "x_px": 241.9,
+      "y_px": 522.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_100",
+      "name": "Main_6F_C25",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 241.5,
+      "y": 472.3,
+      "x_px": 241.5,
+      "y_px": 472.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_101",
+      "name": "Main_6F_C26",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 244.3,
+      "y": 416.3,
+      "x_px": 244.3,
+      "y_px": 416.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_102",
+      "name": "Main_6F_C27",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 246.5,
+      "y": 367.1,
+      "x_px": 246.5,
+      "y_px": 367.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_103",
+      "name": "Main_6F_C28",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 244.6,
+      "y": 279.4,
+      "x_px": 244.6,
+      "y_px": 279.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_104",
+      "name": "Main_6F_C29",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 244,
+      "y": 256.1,
+      "x_px": 244,
+      "y_px": 256.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_105",
+      "name": "Main_6F_C31",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 170,
+      "y": 255.6,
+      "x_px": 170,
+      "y_px": 255.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_106",
+      "name": "Main_6F_C732",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 151.9,
+      "y": 254.8,
+      "x_px": 151.9,
+      "y_px": 254.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_107",
+      "name": "Main_6F_C730",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 190.5,
+      "y": 255.9,
+      "x_px": 190.5,
+      "y_px": 255.9,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_108",
+      "name": "Main_6F_C33",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 186.4,
+      "y": 224.4,
+      "x_px": 186.4,
+      "y_px": 224.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_109",
+      "name": "Main_6F_C34",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 188.6,
+      "y": 208,
+      "x_px": 188.6,
+      "y_px": 208,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_111",
+      "name": "Untitled 111",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 269.3,
+      "y": 186.8,
+      "x_px": 269.3,
+      "y_px": 186.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_115",
+      "name": "Main_6F_C40",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 394.6,
+      "y": 171.6,
+      "x_px": 394.6,
+      "y_px": 171.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_116",
+      "name": "Main_6F_C41",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 392.5,
+      "y": 250.7,
+      "x_px": 392.5,
+      "y_px": 250.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_117",
+      "name": "Main_6F_C42",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 392.7,
+      "y": 297,
+      "x_px": 392.7,
+      "y_px": 297,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_118",
+      "name": "Main_6F_C43",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 393.9,
+      "y": 344.8,
+      "x_px": 393.9,
+      "y_px": 344.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_119",
+      "name": "Main_6F_C44",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 409,
+      "y": 346.1,
+      "x_px": 409,
+      "y_px": 346.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_120",
+      "name": "Main_6F_C45",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 407.4,
+      "y": 389.6,
+      "x_px": 407.4,
+      "y_px": 389.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_121",
+      "name": "Main_6F_C46",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 407.7,
+      "y": 420.9,
+      "x_px": 407.7,
+      "y_px": 420.9,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_121_2",
+      "name": "Main_6F_C35",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 216.7,
+      "y": 201.4,
+      "x_px": 216.7,
+      "y_px": 201.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_122",
+      "name": "Main_6F_C36",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 269.2,
+      "y": 186.2,
+      "x_px": 269.2,
+      "y_px": 186.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_123",
+      "name": "Main_6F_C37",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 339.4,
+      "y": 167.2,
+      "x_px": 339.4,
+      "y_px": 167.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_124",
+      "name": "Main_6F_C38",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 386,
+      "y": 154.2,
+      "x_px": 386,
+      "y_px": 154.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_125",
+      "name": "Main_6F_C739",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 405.7,
+      "y": 148.3,
+      "x_px": 405.7,
+      "y_px": 148.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_123_2",
+      "name": "Main_6F_C47",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 481.7,
+      "y": 619,
+      "x_px": 481.7,
+      "y_px": 619,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_124_2",
+      "name": "Main_6F_C48",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 519.7,
+      "y": 617.4,
+      "x_px": 519.7,
+      "y_px": 617.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_125_2",
+      "name": "Main_6F_C49",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 518.7,
+      "y": 594.6,
+      "x_px": 518.7,
+      "y_px": 594.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_126",
+      "name": "Main_6F_C50",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 561.1,
+      "y": 594.3,
+      "x_px": 561.1,
+      "y_px": 594.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_127",
+      "name": "Main_6F_C51",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 617.6,
+      "y": 595.1,
+      "x_px": 617.6,
+      "y_px": 595.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_128",
+      "name": "Main_6F_C52",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 678.6,
+      "y": 597.4,
+      "x_px": 678.6,
+      "y_px": 597.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_129",
+      "name": "Main_6F_C53",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 736.8,
+      "y": 597,
+      "x_px": 736.8,
+      "y_px": 597,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_130",
+      "name": "Main_6F_C54",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 792.8,
+      "y": 597.7,
+      "x_px": 792.8,
+      "y_px": 597.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_131",
+      "name": "Main_6F_C55",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 813,
+      "y": 599.3,
+      "x_px": 813,
+      "y_px": 599.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_132",
+      "name": "Main_6F_C56",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 684.8,
+      "y": 447.3,
+      "x_px": 684.8,
+      "y_px": 447.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_133",
+      "name": "Main_6F_C57",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 662.7,
+      "y": 446.5,
+      "x_px": 662.7,
+      "y_px": 446.5,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_134",
+      "name": "Main_6F_C58",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 611,
+      "y": 446.3,
+      "x_px": 611,
+      "y_px": 446.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_135",
+      "name": "Main_6F_C59",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 556.5,
+      "y": 447.8,
+      "x_px": 556.5,
+      "y_px": 447.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_136",
+      "name": "Main_6F_C60",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 522.9,
+      "y": 443.4,
+      "x_px": 522.9,
+      "y_px": 443.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_137",
+      "name": "Main_6F_C61",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 713,
+      "y": 446.7,
+      "x_px": 713,
+      "y_px": 446.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_138",
+      "name": "Main_6F_C62",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 751.6,
+      "y": 447.6,
+      "x_px": 751.6,
+      "y_px": 447.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_139",
+      "name": "Main_6F_C63",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 779.9,
+      "y": 445.2,
+      "x_px": 779.9,
+      "y_px": 445.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_140",
+      "name": "Main_6F_C64",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 844.9,
+      "y": 446.5,
+      "x_px": 844.9,
+      "y_px": 446.5,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_141",
+      "name": "Main_6F_C65",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 911.5,
+      "y": 446.7,
+      "x_px": 911.5,
+      "y_px": 446.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_142",
+      "name": "Main_6F_C66",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 981.3,
+      "y": 447.1,
+      "x_px": 981.3,
+      "y_px": 447.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_143",
+      "name": "Main_6F_C67",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 1045,
+      "y": 447.8,
+      "x_px": 1045,
+      "y_px": 447.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_144",
+      "name": "Main_6F_C68",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 1077.3,
+      "y": 448.4,
+      "x_px": 1077.3,
+      "y_px": 448.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_145",
+      "name": "Main_6F_C69",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 1132.6,
+      "y": 449.1,
+      "x_px": 1132.6,
+      "y_px": 449.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_146",
+      "name": "Main_6F_C70",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 682.2,
+      "y": 366.1,
+      "x_px": 682.2,
+      "y_px": 366.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_147",
+      "name": "Main_6F_C71",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 664.5,
+      "y": 365.6,
+      "x_px": 664.5,
+      "y_px": 365.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_148",
+      "name": "Main_6F_C72",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 642.9,
+      "y": 364.9,
+      "x_px": 642.9,
+      "y_px": 364.9,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_149",
+      "name": "Main_6F_C73",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 648,
+      "y": 311.9,
+      "x_px": 648,
+      "y_px": 311.9,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_150",
+      "name": "Main_6F_C74",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 653.2,
+      "y": 253.3,
+      "x_px": 653.2,
+      "y_px": 253.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_151",
+      "name": "Main_6F_C75",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 658.9,
+      "y": 207.1,
+      "x_px": 658.9,
+      "y_px": 207.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_152",
+      "name": "Main_6F_C76",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 660.2,
+      "y": 164,
+      "x_px": 660.2,
+      "y_px": 164,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_153",
+      "name": "Main_6F_C77",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 736.9,
+      "y": 366.6,
+      "x_px": 736.9,
+      "y_px": 366.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_154",
+      "name": "Main_6F_C78",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 739.7,
+      "y": 337.4,
+      "x_px": 739.7,
+      "y_px": 337.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_155",
+      "name": "Main_6F_C79",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 824.9,
+      "y": 365.1,
+      "x_px": 824.9,
+      "y_px": 365.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_156",
+      "name": "Main_6F_C80",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 601,
+      "y": 446.7,
+      "x_px": 601,
+      "y_px": 446.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "f6_untitled_157",
+      "name": "Main_6F_C81",
+      "building": "Main Building",
+      "floor": 6,
+      "x": 631.4,
+      "y": 446.6,
+      "x_px": 631.4,
+      "y_px": 446.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_1_2",
+      "name": "Room 730A",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 360.2,
+      "y": 400.8,
+      "x_px": 360.2,
+      "y_px": 400.8,
+      "kind": "classroom",
+      "aliases": [
+        "Roomn730A",
+        "730A"
+      ]
+    },
+    {
+      "id": "untitled_2_2",
+      "name": "Room 730B",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 411.4,
+      "y": 401.4,
+      "x_px": 411.4,
+      "y_px": 401.4,
+      "kind": "classroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_3_2",
+      "name": "7f_c1",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 359.4,
+      "y": 434.7,
+      "x_px": 359.4,
+      "y_px": 434.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_4_2",
+      "name": "7f_c2",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 411.4,
+      "y": 435,
+      "x_px": 411.4,
+      "y_px": 435,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_5_2",
+      "name": "7F Male CR 2",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 681.5,
+      "y": 371.6,
+      "x_px": 681.5,
+      "y_px": 371.6,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_6_2",
+      "name": "Room 730C",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 463.8,
+      "y": 403.1,
+      "x_px": 463.8,
+      "y_px": 403.1,
+      "kind": "classroom",
+      "aliases": [
+        "Room730C",
+        "730C"
+      ]
+    },
+    {
+      "id": "untitled_7_2",
+      "name": "7f_c4",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 464.4,
+      "y": 439.3,
+      "x_px": 464.4,
+      "y_px": 439.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_8_2",
+      "name": "Mini Hotel",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 283.5,
+      "y": 494.7,
+      "x_px": 283.5,
+      "y_px": 494.7,
+      "kind": "facility",
+      "aliases": []
+    },
+    {
+      "id": "untitled_9_2",
+      "name": "HRM HOUSEKEEPING ROOM 729",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 267.4,
+      "y": 524.4,
+      "x_px": 267.4,
+      "y_px": 524.4,
+      "kind": "facility",
+      "aliases": [
+        "Room 729",
+        "HRM ROOM"
+      ]
+    },
+    {
+      "id": "untitled_10_2",
+      "name": "Room 728",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 270.1,
+      "y": 571.8,
+      "x_px": 270.1,
+      "y_px": 571.8,
+      "kind": "classroom",
+      "aliases": [
+        "Room 728"
+      ]
+    },
+    {
+      "id": "untitled_11_2",
+      "name": "Room 727",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 270.9,
+      "y": 619.5,
+      "x_px": 270.9,
+      "y_px": 619.5,
+      "kind": "classroom",
+      "aliases": [
+        "Room 727"
+      ]
+    },
+    {
+      "id": "untitled_12_2",
+      "name": "Room 726",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 269,
+      "y": 664.5,
+      "x_px": 269,
+      "y_px": 664.5,
+      "kind": "classroom",
+      "aliases": [
+        "Room 726"
+      ]
+    },
+    {
+      "id": "untitled_13_2",
+      "name": "HRM Faculty Room 725",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 270,
+      "y": 714.9,
+      "x_px": 270,
+      "y_px": 714.9,
+      "kind": "office",
+      "aliases": []
+    },
+    {
+      "id": "untitled_14_2",
+      "name": "HRM Office Dean's 724",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 270.5,
+      "y": 763.8,
+      "x_px": 270.5,
+      "y_px": 763.8,
+      "kind": "office",
+      "aliases": [
+        "Room 724"
+      ]
+    },
+    {
+      "id": "untitled_15_2",
+      "name": "7F Stairs 8 Near Gate 4",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 245.8,
+      "y": 831.5,
+      "x_px": 245.8,
+      "y_px": 831.5,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "untitled_16_2",
+      "name": "Room 722",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 264.4,
+      "y": 836.3,
+      "x_px": 264.4,
+      "y_px": 836.3,
+      "kind": "classroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_17_2",
+      "name": "Room 721",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 333.8,
+      "y": 835.6,
+      "x_px": 333.8,
+      "y_px": 835.6,
+      "kind": "classroom",
+      "aliases": [
+        "Room721"
+      ]
+    },
+    {
+      "id": "untitled_18_2",
+      "name": "7F Male CR 1",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 199.5,
+      "y": 300.9,
+      "x_px": 199.5,
+      "y_px": 300.9,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_19_2",
+      "name": "7F Elevator 1",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 233.1,
+      "y": 327.7,
+      "x_px": 233.1,
+      "y_px": 327.7,
+      "kind": "elevator",
+      "aliases": []
+    },
+    {
+      "id": "untitled_20_2",
+      "name": "7F Male CR 4",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 403.8,
+      "y": 834.3,
+      "x_px": 403.8,
+      "y_px": 834.3,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_21_2",
+      "name": "7F Female CR 3",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 418.4,
+      "y": 834.1,
+      "x_px": 418.4,
+      "y_px": 834.1,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_22_2",
+      "name": "Criminology Gym",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 431.9,
+      "y": 514.6,
+      "x_px": 431.9,
+      "y_px": 514.6,
+      "kind": "facility",
+      "aliases": []
+    },
+    {
+      "id": "untitled_23_2",
+      "name": "Physics Lab 734",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 511.4,
+      "y": 441.5,
+      "x_px": 511.4,
+      "y_px": 441.5,
+      "kind": "lab",
+      "aliases": [
+        "Room734"
+      ]
+    },
+    {
+      "id": "untitled_24_2",
+      "name": "Chemistry Lab 733",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 493.8,
+      "y": 309.5,
+      "x_px": 493.8,
+      "y_px": 309.5,
+      "kind": "lab",
+      "aliases": [
+        "Room733"
+      ]
+    },
+    {
+      "id": "untitled_25_2",
+      "name": "7F Stairs 3 Near Gate 2",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 651.1,
+      "y": 242.6,
+      "x_px": 651.1,
+      "y_px": 242.6,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "untitled_26_2",
+      "name": "7F Male CR 3",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 716.5,
+      "y": 383.9,
+      "x_px": 716.5,
+      "y_px": 383.9,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_27_2",
+      "name": "7F Female CR 1",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 782,
+      "y": 383.2,
+      "x_px": 782,
+      "y_px": 383.2,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_28_2",
+      "name": "7F Female CR 2",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 834.4,
+      "y": 371.9,
+      "x_px": 834.4,
+      "y_px": 371.9,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_29_2",
+      "name": "7F Stairs 4 Near Gate 3",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 1051.2,
+      "y": 553.6,
+      "x_px": 1051.2,
+      "y_px": 553.6,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "untitled_30_2",
+      "name": "7F Male CR 5",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 849.2,
+      "y": 631.7,
+      "x_px": 849.2,
+      "y_px": 631.7,
+      "kind": "restroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_31_2",
+      "name": "7F Stairs 5 Near Gate 3",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 792.8,
+      "y": 595.3,
+      "x_px": 792.8,
+      "y_px": 595.3,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "untitled_33_2",
+      "name": "College PE Classrooms 711, 712",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 763.4,
+      "y": 664.2,
+      "x_px": 763.4,
+      "y_px": 664.2,
+      "kind": "classroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_34_2",
+      "name": "College PE Classrooms 713, 714",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 657.6,
+      "y": 660.1,
+      "x_px": 657.6,
+      "y_px": 660.1,
+      "kind": "classroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_35_2",
+      "name": "PE Office",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 558.8,
+      "y": 662.3,
+      "x_px": 558.8,
+      "y_px": 662.3,
+      "kind": "office",
+      "aliases": []
+    },
+    {
+      "id": "untitled_36",
+      "name": "College PE Classrooms 715, 716",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 632.6,
+      "y": 661.3,
+      "x_px": 632.6,
+      "y_px": 661.3,
+      "kind": "classroom",
+      "aliases": []
+    },
+    {
+      "id": "untitled_37_2",
+      "name": "7f_c3",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 434,
+      "y": 435.5,
+      "x_px": 434,
+      "y_px": 435.5,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_38_2",
+      "name": "7f_c5",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 480.3,
+      "y": 440.4,
+      "x_px": 480.3,
+      "y_px": 440.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_39_2",
+      "name": "7f_c6",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 479.4,
+      "y": 344.4,
+      "x_px": 479.4,
+      "y_px": 344.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_40_2",
+      "name": "7f_c7",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 460.7,
+      "y": 344.3,
+      "x_px": 460.7,
+      "y_px": 344.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_41_2",
+      "name": "7f_c8",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 461.2,
+      "y": 309.7,
+      "x_px": 461.2,
+      "y_px": 309.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_42_2",
+      "name": "7f_c9",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 301.2,
+      "y": 437.2,
+      "x_px": 301.2,
+      "y_px": 437.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_43_2",
+      "name": "7f_c10",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 298.5,
+      "y": 521.6,
+      "x_px": 298.5,
+      "y_px": 521.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_44",
+      "name": "7f_c11",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 300.2,
+      "y": 303.9,
+      "x_px": 300.2,
+      "y_px": 303.9,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_45",
+      "name": "7f_c12",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 255,
+      "y": 303.2,
+      "x_px": 255,
+      "y_px": 303.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_46_2",
+      "name": "7f_c13",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 219.7,
+      "y": 301.6,
+      "x_px": 219.7,
+      "y_px": 301.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_47_2",
+      "name": "7f_c14",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 283.4,
+      "y": 523,
+      "x_px": 283.4,
+      "y_px": 523,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_48_2",
+      "name": "7f_c15",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 299.4,
+      "y": 570.4,
+      "x_px": 299.4,
+      "y_px": 570.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_49_2",
+      "name": "7f_c16",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 299.3,
+      "y": 618.1,
+      "x_px": 299.3,
+      "y_px": 618.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_50_2",
+      "name": "7f_c17",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 297.8,
+      "y": 665,
+      "x_px": 297.8,
+      "y_px": 665,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_51_2",
+      "name": "7f_c18",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 300.4,
+      "y": 714.4,
+      "x_px": 300.4,
+      "y_px": 714.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_52_2",
+      "name": "7f_c19",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 299.7,
+      "y": 762.6,
+      "x_px": 299.7,
+      "y_px": 762.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_53_2",
+      "name": "7f_c20",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 299.2,
+      "y": 809.4,
+      "x_px": 299.2,
+      "y_px": 809.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_54_2",
+      "name": "7f_c21",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 264.2,
+      "y": 811.2,
+      "x_px": 264.2,
+      "y_px": 811.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_55_2",
+      "name": "7f_c22",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 246.7,
+      "y": 813.3,
+      "x_px": 246.7,
+      "y_px": 813.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_56_2",
+      "name": "7f_c23",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 333.8,
+      "y": 809.2,
+      "x_px": 333.8,
+      "y_px": 809.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_57_2",
+      "name": "7f_c24",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 403.8,
+      "y": 810,
+      "x_px": 403.8,
+      "y_px": 810,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_58_2",
+      "name": "7f_c25",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 417,
+      "y": 809,
+      "x_px": 417,
+      "y_px": 809,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_59_2",
+      "name": "7f_c26",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 676,
+      "y": 244.2,
+      "x_px": 676,
+      "y_px": 244.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_60_2",
+      "name": "7f_c27",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 655.8,
+      "y": 417.3,
+      "x_px": 655.8,
+      "y_px": 417.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_61_2",
+      "name": "7f_c28",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 680.9,
+      "y": 417.5,
+      "x_px": 680.9,
+      "y_px": 417.5,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_62_2",
+      "name": "7f_c29",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 744.2,
+      "y": 418,
+      "x_px": 744.2,
+      "y_px": 418,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_63_2",
+      "name": "7f_c30",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 745.9,
+      "y": 383.4,
+      "x_px": 745.9,
+      "y_px": 383.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_64_2",
+      "name": "7f_c31",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 831.3,
+      "y": 417.6,
+      "x_px": 831.3,
+      "y_px": 417.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_65_2",
+      "name": "7f_c32",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 830.6,
+      "y": 510.4,
+      "x_px": 830.6,
+      "y_px": 510.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_66_2",
+      "name": "7f_c33",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 1048.7,
+      "y": 512.6,
+      "x_px": 1048.7,
+      "y_px": 512.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_67_2",
+      "name": "7f_c34",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 699,
+      "y": 509.6,
+      "x_px": 699,
+      "y_px": 509.6,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_68_2",
+      "name": "7f_c35",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 650.9,
+      "y": 509.2,
+      "x_px": 650.9,
+      "y_px": 509.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_69_2",
+      "name": "7f_c36",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 696.6,
+      "y": 625.7,
+      "x_px": 696.6,
+      "y_px": 625.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_70_2",
+      "name": "7f_c37",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 792.8,
+      "y": 628.2,
+      "x_px": 792.8,
+      "y_px": 628.2,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_71_2",
+      "name": "7f_c38",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 764.8,
+      "y": 628,
+      "x_px": 764.8,
+      "y_px": 628,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_72_2",
+      "name": "7f_c39",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 658.9,
+      "y": 624.3,
+      "x_px": 658.9,
+      "y_px": 624.3,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_73_2",
+      "name": "7f_40",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 633.4,
+      "y": 624.7,
+      "x_px": 633.4,
+      "y_px": 624.7,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_74_2",
+      "name": "7f_c41",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 560.3,
+      "y": 623.9,
+      "x_px": 560.3,
+      "y_px": 623.9,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_74_3",
+      "name": "7F Stairs 1 Near Gate 1",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 219.8,
+      "y": 328.2,
+      "x_px": 219.8,
+      "y_px": 328.2,
+      "kind": "stairs",
+      "aliases": []
+    },
+    {
+      "id": "untitled_159_2",
+      "name": "Main COR W10.1 5F",
+      "building": "Main Building",
+      "floor": 5,
+      "x": 164.8,
+      "y": 259.4,
+      "x_px": 164.8,
+      "y_px": 259.4,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_160_2",
+      "name": "Main COR W9.2 5F",
+      "building": "Main Building",
+      "floor": 5,
+      "x": 213.9,
+      "y": 259.8,
+      "x_px": 213.9,
+      "y_px": 259.8,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_161",
+      "name": "Main COR W9.1 5F",
+      "building": "Main Building",
+      "floor": 5,
+      "x": 241.7,
+      "y": 302.1,
+      "x_px": 241.7,
+      "y_px": 302.1,
+      "kind": "hall",
+      "aliases": []
+    },
+    {
+      "id": "untitled_75_2",
+      "name": "7f_c12.1",
+      "building": "Main Building",
+      "floor": 7,
+      "x": 234.1,
+      "y": 302.5,
+      "x_px": 234.1,
+      "y_px": 302.5,
       "kind": "hall",
       "aliases": []
     }
@@ -2063,10 +5076,6 @@
     },
     {
       "from": "untitled_32",
-      "to": "untitled_79"
-    },
-    {
-      "from": "untitled_80",
       "to": "untitled_79"
     },
     {
@@ -2458,28 +5467,8 @@
       "to": "untitled_88"
     },
     {
-      "from": "untitled_138",
-      "to": "untitled_137"
-    },
-    {
       "from": "untitled_83",
       "to": "untitled_137"
-    },
-    {
-      "from": "untitled_137",
-      "to": "untitled_136"
-    },
-    {
-      "from": "untitled_137",
-      "to": "untitled_73"
-    },
-    {
-      "from": "untitled_138",
-      "to": "untitled_74"
-    },
-    {
-      "from": "untitled_136",
-      "to": "untitled_135"
     },
     {
       "from": "untitled_135",
@@ -2668,6 +5657,1014 @@
     {
       "from": "untitled_90",
       "to": "untitled_158_2"
+    },
+    {
+      "from": "untitled_1_2",
+      "to": "untitled_3_2"
+    },
+    {
+      "from": "untitled_2_2",
+      "to": "untitled_4_2"
+    },
+    {
+      "from": "untitled_3_2",
+      "to": "untitled_4_2"
+    },
+    {
+      "from": "untitled_6_2",
+      "to": "untitled_7_2"
+    },
+    {
+      "from": "untitled_4_2",
+      "to": "untitled_37_2"
+    },
+    {
+      "from": "untitled_37_2",
+      "to": "untitled_7_2"
+    },
+    {
+      "from": "untitled_37_2",
+      "to": "untitled_22_2"
+    },
+    {
+      "from": "untitled_7_2",
+      "to": "untitled_38_2"
+    },
+    {
+      "from": "untitled_38_2",
+      "to": "untitled_23_2"
+    },
+    {
+      "from": "untitled_39_2",
+      "to": "untitled_38_2"
+    },
+    {
+      "from": "untitled_40_2",
+      "to": "untitled_39_2"
+    },
+    {
+      "from": "untitled_40_2",
+      "to": "untitled_41_2"
+    },
+    {
+      "from": "untitled_41_2",
+      "to": "untitled_24_2"
+    },
+    {
+      "from": "untitled_46_2",
+      "to": "untitled_74_3"
+    },
+    {
+      "from": "untitled_46_2",
+      "to": "untitled_18_2"
+    },
+    {
+      "from": "untitled_45",
+      "to": "untitled_44"
+    },
+    {
+      "from": "untitled_42_2",
+      "to": "untitled_44"
+    },
+    {
+      "from": "untitled_42_2",
+      "to": "untitled_3_2"
+    },
+    {
+      "from": "untitled_42_2",
+      "to": "untitled_43_2"
+    },
+    {
+      "from": "untitled_43_2",
+      "to": "untitled_47_2"
+    },
+    {
+      "from": "untitled_47_2",
+      "to": "untitled_8_2"
+    },
+    {
+      "from": "untitled_47_2",
+      "to": "untitled_9_2"
+    },
+    {
+      "from": "untitled_43_2",
+      "to": "untitled_48_2"
+    },
+    {
+      "from": "untitled_48_2",
+      "to": "untitled_10_2"
+    },
+    {
+      "from": "untitled_49_2",
+      "to": "untitled_11_2"
+    },
+    {
+      "from": "untitled_49_2",
+      "to": "untitled_48_2"
+    },
+    {
+      "from": "untitled_50_2",
+      "to": "untitled_12_2"
+    },
+    {
+      "from": "untitled_50_2",
+      "to": "untitled_49_2"
+    },
+    {
+      "from": "untitled_51_2",
+      "to": "untitled_50_2"
+    },
+    {
+      "from": "untitled_51_2",
+      "to": "untitled_13_2"
+    },
+    {
+      "from": "untitled_52_2",
+      "to": "untitled_51_2"
+    },
+    {
+      "from": "untitled_52_2",
+      "to": "untitled_14_2"
+    },
+    {
+      "from": "untitled_52_2",
+      "to": "untitled_53_2"
+    },
+    {
+      "from": "untitled_53_2",
+      "to": "untitled_54_2"
+    },
+    {
+      "from": "untitled_54_2",
+      "to": "untitled_55_2"
+    },
+    {
+      "from": "untitled_55_2",
+      "to": "untitled_15_2"
+    },
+    {
+      "from": "untitled_54_2",
+      "to": "untitled_16_2"
+    },
+    {
+      "from": "untitled_56_2",
+      "to": "untitled_53_2"
+    },
+    {
+      "from": "untitled_56_2",
+      "to": "untitled_17_2"
+    },
+    {
+      "from": "untitled_56_2",
+      "to": "untitled_57_2"
+    },
+    {
+      "from": "untitled_57_2",
+      "to": "untitled_20_2"
+    },
+    {
+      "from": "untitled_57_2",
+      "to": "untitled_58_2"
+    },
+    {
+      "from": "untitled_58_2",
+      "to": "untitled_21_2"
+    },
+    {
+      "from": "untitled_25_2",
+      "to": "untitled_59_2"
+    },
+    {
+      "from": "untitled_59_2",
+      "to": "untitled_60_2"
+    },
+    {
+      "from": "untitled_60_2",
+      "to": "untitled_61_2"
+    },
+    {
+      "from": "untitled_61_2",
+      "to": "untitled_5_2"
+    },
+    {
+      "from": "untitled_61_2",
+      "to": "untitled_62_2"
+    },
+    {
+      "from": "untitled_62_2",
+      "to": "untitled_63_2"
+    },
+    {
+      "from": "untitled_63_2",
+      "to": "untitled_26_2"
+    },
+    {
+      "from": "untitled_63_2",
+      "to": "untitled_27_2"
+    },
+    {
+      "from": "untitled_62_2",
+      "to": "untitled_64_2"
+    },
+    {
+      "from": "untitled_64_2",
+      "to": "untitled_28_2"
+    },
+    {
+      "from": "untitled_60_2",
+      "to": "untitled_68_2"
+    },
+    {
+      "from": "untitled_68_2",
+      "to": "untitled_67_2"
+    },
+    {
+      "from": "untitled_67_2",
+      "to": "untitled_69_2"
+    },
+    {
+      "from": "untitled_65_2",
+      "to": "untitled_67_2"
+    },
+    {
+      "from": "untitled_64_2",
+      "to": "untitled_65_2"
+    },
+    {
+      "from": "untitled_65_2",
+      "to": "untitled_66_2"
+    },
+    {
+      "from": "untitled_66_2",
+      "to": "untitled_29_2"
+    },
+    {
+      "from": "untitled_69_2",
+      "to": "untitled_71_2"
+    },
+    {
+      "from": "untitled_71_2",
+      "to": "untitled_70_2"
+    },
+    {
+      "from": "untitled_70_2",
+      "to": "untitled_31_2"
+    },
+    {
+      "from": "untitled_70_2",
+      "to": "untitled_30_2"
+    },
+    {
+      "from": "untitled_71_2",
+      "to": "untitled_33_2"
+    },
+    {
+      "from": "untitled_72_2",
+      "to": "untitled_69_2"
+    },
+    {
+      "from": "untitled_72_2",
+      "to": "untitled_34_2"
+    },
+    {
+      "from": "untitled_73_2",
+      "to": "untitled_72_2"
+    },
+    {
+      "from": "untitled_73_2",
+      "to": "untitled_36"
+    },
+    {
+      "from": "untitled_73_2",
+      "to": "untitled_74_2"
+    },
+    {
+      "from": "untitled_74_2",
+      "to": "untitled_35_2"
+    },
+    {
+      "from": "f6_untitled_2",
+      "to": "f6_untitled_5"
+    },
+    {
+      "from": "f6_untitled_3",
+      "to": "f6_untitled_6"
+    },
+    {
+      "from": "f6_untitled_5",
+      "to": "f6_untitled_6"
+    },
+    {
+      "from": "f6_untitled_6",
+      "to": "f6_untitled_7"
+    },
+    {
+      "from": "f6_untitled_4",
+      "to": "f6_untitled_7"
+    },
+    {
+      "from": "f6_untitled_79",
+      "to": "f6_untitled_7"
+    },
+    {
+      "from": "f6_untitled_19",
+      "to": "f6_untitled_79"
+    },
+    {
+      "from": "f6_untitled_79",
+      "to": "f6_untitled_80"
+    },
+    {
+      "from": "f6_untitled_20",
+      "to": "f6_untitled_80"
+    },
+    {
+      "from": "f6_untitled_81",
+      "to": "f6_untitled_21"
+    },
+    {
+      "from": "f6_untitled_80",
+      "to": "f6_untitled_81"
+    },
+    {
+      "from": "f6_untitled_81",
+      "to": "f6_untitled_82"
+    },
+    {
+      "from": "f6_untitled_82",
+      "to": "f6_untitled_22"
+    },
+    {
+      "from": "f6_untitled_82",
+      "to": "f6_untitled_83"
+    },
+    {
+      "from": "f6_untitled_83",
+      "to": "f6_untitled_23"
+    },
+    {
+      "from": "f6_untitled_83",
+      "to": "f6_untitled_84"
+    },
+    {
+      "from": "f6_untitled_84",
+      "to": "f6_untitled_24"
+    },
+    {
+      "from": "f6_untitled_84",
+      "to": "f6_untitled_85"
+    },
+    {
+      "from": "f6_untitled_85",
+      "to": "f6_untitled_25"
+    },
+    {
+      "from": "f6_untitled_85",
+      "to": "f6_untitled_86"
+    },
+    {
+      "from": "f6_untitled_86",
+      "to": "f6_untitled_26"
+    },
+    {
+      "from": "f6_untitled_86",
+      "to": "f6_untitled_87"
+    },
+    {
+      "from": "f6_untitled_87",
+      "to": "f6_untitled_27"
+    },
+    {
+      "from": "f6_untitled_87",
+      "to": "f6_untitled_88"
+    },
+    {
+      "from": "f6_untitled_88",
+      "to": "f6_untitled_89"
+    },
+    {
+      "from": "f6_untitled_89",
+      "to": "f6_untitled_28"
+    },
+    {
+      "from": "f6_untitled_88",
+      "to": "f6_untitled_90"
+    },
+    {
+      "from": "f6_untitled_90",
+      "to": "f6_untitled_29"
+    },
+    {
+      "from": "f6_untitled_90",
+      "to": "f6_untitled_91"
+    },
+    {
+      "from": "f6_untitled_91",
+      "to": "f6_untitled_30"
+    },
+    {
+      "from": "f6_untitled_91",
+      "to": "f6_untitled_92"
+    },
+    {
+      "from": "f6_untitled_92",
+      "to": "f6_untitled_31"
+    },
+    {
+      "from": "f6_untitled_92",
+      "to": "f6_untitled_94"
+    },
+    {
+      "from": "f6_untitled_94",
+      "to": "f6_untitled_32"
+    },
+    {
+      "from": "f6_untitled_92",
+      "to": "f6_untitled_93"
+    },
+    {
+      "from": "f6_untitled_93",
+      "to": "f6_untitled_33"
+    },
+    {
+      "from": "f6_untitled_93",
+      "to": "f6_untitled_95"
+    },
+    {
+      "from": "f6_untitled_95",
+      "to": "f6_untitled_34"
+    },
+    {
+      "from": "f6_untitled_95",
+      "to": "f6_untitled_96"
+    },
+    {
+      "from": "f6_untitled_96",
+      "to": "f6_untitled_35"
+    },
+    {
+      "from": "f6_untitled_96",
+      "to": "f6_untitled_97"
+    },
+    {
+      "from": "f6_untitled_97",
+      "to": "f6_untitled_36"
+    },
+    {
+      "from": "f6_untitled_97",
+      "to": "f6_untitled_98"
+    },
+    {
+      "from": "f6_untitled_98",
+      "to": "f6_untitled_37"
+    },
+    {
+      "from": "f6_untitled_98",
+      "to": "f6_untitled_99"
+    },
+    {
+      "from": "f6_untitled_99",
+      "to": "f6_untitled_38"
+    },
+    {
+      "from": "f6_untitled_99",
+      "to": "f6_untitled_100"
+    },
+    {
+      "from": "f6_untitled_100",
+      "to": "f6_untitled_39"
+    },
+    {
+      "from": "f6_untitled_100",
+      "to": "f6_untitled_101"
+    },
+    {
+      "from": "f6_untitled_101",
+      "to": "f6_untitled_40"
+    },
+    {
+      "from": "f6_untitled_5",
+      "to": "f6_untitled_101"
+    },
+    {
+      "from": "f6_untitled_101",
+      "to": "f6_untitled_102"
+    },
+    {
+      "from": "f6_untitled_102",
+      "to": "f6_untitled_41"
+    },
+    {
+      "from": "f6_untitled_102",
+      "to": "f6_untitled_103"
+    },
+    {
+      "from": "f6_untitled_103",
+      "to": "f6_untitled_42"
+    },
+    {
+      "from": "f6_untitled_103",
+      "to": "f6_untitled_104"
+    },
+    {
+      "from": "f6_untitled_104",
+      "to": "f6_untitled_107"
+    },
+    {
+      "from": "f6_untitled_107",
+      "to": "f6_untitled_105"
+    },
+    {
+      "from": "f6_untitled_105",
+      "to": "f6_untitled_106"
+    },
+    {
+      "from": "f6_untitled_106",
+      "to": "f6_untitled_9"
+    },
+    {
+      "from": "f6_untitled_105",
+      "to": "f6_untitled_43"
+    },
+    {
+      "from": "f6_untitled_106",
+      "to": "f6_untitled_44"
+    },
+    {
+      "from": "f6_untitled_107",
+      "to": "f6_untitled_108"
+    },
+    {
+      "from": "f6_untitled_108",
+      "to": "f6_untitled_8"
+    },
+    {
+      "from": "f6_untitled_108",
+      "to": "f6_untitled_109"
+    },
+    {
+      "from": "f6_untitled_109",
+      "to": "f6_untitled_121_2"
+    },
+    {
+      "from": "f6_untitled_121_2",
+      "to": "f6_untitled_10"
+    },
+    {
+      "from": "f6_untitled_121_2",
+      "to": "f6_untitled_111"
+    },
+    {
+      "from": "f6_untitled_111",
+      "to": "f6_untitled_11"
+    },
+    {
+      "from": "f6_untitled_111",
+      "to": "f6_untitled_123"
+    },
+    {
+      "from": "f6_untitled_123",
+      "to": "f6_untitled_12"
+    },
+    {
+      "from": "f6_untitled_123",
+      "to": "f6_untitled_124"
+    },
+    {
+      "from": "f6_untitled_124",
+      "to": "f6_untitled_13"
+    },
+    {
+      "from": "f6_untitled_124",
+      "to": "f6_untitled_125"
+    },
+    {
+      "from": "f6_untitled_125",
+      "to": "f6_untitled_45"
+    },
+    {
+      "from": "f6_untitled_124",
+      "to": "f6_untitled_115"
+    },
+    {
+      "from": "f6_untitled_115",
+      "to": "f6_untitled_14"
+    },
+    {
+      "from": "f6_untitled_115",
+      "to": "f6_untitled_116"
+    },
+    {
+      "from": "f6_untitled_116",
+      "to": "f6_untitled_15"
+    },
+    {
+      "from": "f6_untitled_116",
+      "to": "f6_untitled_117"
+    },
+    {
+      "from": "f6_untitled_117",
+      "to": "f6_untitled_16"
+    },
+    {
+      "from": "f6_untitled_117",
+      "to": "f6_untitled_118"
+    },
+    {
+      "from": "f6_untitled_118",
+      "to": "f6_untitled_119"
+    },
+    {
+      "from": "f6_untitled_119",
+      "to": "f6_untitled_17"
+    },
+    {
+      "from": "f6_untitled_119",
+      "to": "f6_untitled_120"
+    },
+    {
+      "from": "f6_untitled_120",
+      "to": "f6_untitled_18"
+    },
+    {
+      "from": "f6_untitled_120",
+      "to": "f6_untitled_121"
+    },
+    {
+      "from": "f6_untitled_121",
+      "to": "f6_untitled_7"
+    },
+    {
+      "from": "f6_untitled_23",
+      "to": "f6_untitled_123_2"
+    },
+    {
+      "from": "f6_untitled_123_2",
+      "to": "f6_untitled_124_2"
+    },
+    {
+      "from": "f6_untitled_124_2",
+      "to": "f6_untitled_125_2"
+    },
+    {
+      "from": "f6_untitled_125_2",
+      "to": "f6_untitled_126"
+    },
+    {
+      "from": "f6_untitled_126",
+      "to": "f6_untitled_76"
+    },
+    {
+      "from": "f6_untitled_126",
+      "to": "f6_untitled_127"
+    },
+    {
+      "from": "f6_untitled_127",
+      "to": "f6_untitled_75"
+    },
+    {
+      "from": "f6_untitled_127",
+      "to": "f6_untitled_128"
+    },
+    {
+      "from": "f6_untitled_128",
+      "to": "f6_untitled_74"
+    },
+    {
+      "from": "f6_untitled_128",
+      "to": "f6_untitled_129"
+    },
+    {
+      "from": "f6_untitled_129",
+      "to": "f6_untitled_73"
+    },
+    {
+      "from": "f6_untitled_129",
+      "to": "f6_untitled_130"
+    },
+    {
+      "from": "f6_untitled_130",
+      "to": "f6_untitled_72"
+    },
+    {
+      "from": "f6_untitled_130",
+      "to": "f6_untitled_131"
+    },
+    {
+      "from": "f6_untitled_131",
+      "to": "f6_untitled_77"
+    },
+    {
+      "from": "f6_untitled_131",
+      "to": "f6_untitled_71"
+    },
+    {
+      "from": "f6_untitled_131",
+      "to": "f6_untitled_78"
+    },
+    {
+      "from": "f6_untitled_128",
+      "to": "f6_untitled_132"
+    },
+    {
+      "from": "f6_untitled_132",
+      "to": "f6_untitled_133"
+    },
+    {
+      "from": "f6_untitled_133",
+      "to": "f6_untitled_67"
+    },
+    {
+      "from": "f6_untitled_134",
+      "to": "f6_untitled_68"
+    },
+    {
+      "from": "f6_untitled_135",
+      "to": "f6_untitled_69"
+    },
+    {
+      "from": "f6_untitled_135",
+      "to": "f6_untitled_136"
+    },
+    {
+      "from": "f6_untitled_136",
+      "to": "f6_untitled_55"
+    },
+    {
+      "from": "f6_untitled_134",
+      "to": "f6_untitled_156"
+    },
+    {
+      "from": "f6_untitled_156",
+      "to": "f6_untitled_56"
+    },
+    {
+      "from": "f6_untitled_156",
+      "to": "f6_untitled_135"
+    },
+    {
+      "from": "f6_untitled_132",
+      "to": "f6_untitled_137"
+    },
+    {
+      "from": "f6_untitled_137",
+      "to": "f6_untitled_58"
+    },
+    {
+      "from": "f6_untitled_137",
+      "to": "f6_untitled_138"
+    },
+    {
+      "from": "f6_untitled_138",
+      "to": "f6_untitled_66"
+    },
+    {
+      "from": "f6_untitled_138",
+      "to": "f6_untitled_139"
+    },
+    {
+      "from": "f6_untitled_139",
+      "to": "f6_untitled_59"
+    },
+    {
+      "from": "f6_untitled_139",
+      "to": "f6_untitled_65"
+    },
+    {
+      "from": "f6_untitled_139",
+      "to": "f6_untitled_140"
+    },
+    {
+      "from": "f6_untitled_140",
+      "to": "f6_untitled_64"
+    },
+    {
+      "from": "f6_untitled_140",
+      "to": "f6_untitled_141"
+    },
+    {
+      "from": "f6_untitled_141",
+      "to": "f6_untitled_63"
+    },
+    {
+      "from": "f6_untitled_141",
+      "to": "f6_untitled_142"
+    },
+    {
+      "from": "f6_untitled_142",
+      "to": "f6_untitled_62"
+    },
+    {
+      "from": "f6_untitled_142",
+      "to": "f6_untitled_143"
+    },
+    {
+      "from": "f6_untitled_143",
+      "to": "f6_untitled_144"
+    },
+    {
+      "from": "f6_untitled_144",
+      "to": "f6_untitled_61"
+    },
+    {
+      "from": "f6_untitled_144",
+      "to": "f6_untitled_145"
+    },
+    {
+      "from": "f6_untitled_145",
+      "to": "f6_untitled_60"
+    },
+    {
+      "from": "f6_untitled_143",
+      "to": "f6_untitled_70"
+    },
+    {
+      "from": "f6_untitled_132",
+      "to": "f6_untitled_146"
+    },
+    {
+      "from": "f6_untitled_146",
+      "to": "f6_untitled_153"
+    },
+    {
+      "from": "f6_untitled_153",
+      "to": "f6_untitled_154"
+    },
+    {
+      "from": "f6_untitled_154",
+      "to": "f6_untitled_53"
+    },
+    {
+      "from": "f6_untitled_154",
+      "to": "f6_untitled_52"
+    },
+    {
+      "from": "f6_untitled_153",
+      "to": "f6_untitled_155"
+    },
+    {
+      "from": "f6_untitled_155",
+      "to": "f6_untitled_54"
+    },
+    {
+      "from": "f6_untitled_146",
+      "to": "f6_untitled_147"
+    },
+    {
+      "from": "f6_untitled_147",
+      "to": "f6_untitled_51"
+    },
+    {
+      "from": "f6_untitled_147",
+      "to": "f6_untitled_148"
+    },
+    {
+      "from": "f6_untitled_148",
+      "to": "f6_untitled_149"
+    },
+    {
+      "from": "f6_untitled_149",
+      "to": "f6_untitled_50"
+    },
+    {
+      "from": "f6_untitled_149",
+      "to": "f6_untitled_150"
+    },
+    {
+      "from": "f6_untitled_150",
+      "to": "f6_untitled_49"
+    },
+    {
+      "from": "f6_untitled_150",
+      "to": "f6_untitled_151"
+    },
+    {
+      "from": "f6_untitled_151",
+      "to": "f6_untitled_48"
+    },
+    {
+      "from": "f6_untitled_151",
+      "to": "f6_untitled_152"
+    },
+    {
+      "from": "f6_untitled_152",
+      "to": "f6_untitled_47"
+    },
+    {
+      "from": "f6_untitled_152",
+      "to": "f6_untitled_46"
+    },
+    {
+      "from": "f6_untitled_134",
+      "to": "f6_untitled_157"
+    },
+    {
+      "from": "f6_untitled_157",
+      "to": "f6_untitled_57"
+    },
+    {
+      "from": "f6_untitled_157",
+      "to": "f6_untitled_133"
+    },
+    {
+      "from": "untitled_70",
+      "to": "f6_untitled_47"
+    },
+    {
+      "from": "untitled_71",
+      "to": "f6_untitled_77"
+    },
+    {
+      "from": "untitled_72",
+      "to": "f6_untitled_45"
+    },
+    {
+      "from": "untitled_73",
+      "to": "f6_untitled_44"
+    },
+    {
+      "from": "untitled_74",
+      "to": "f6_untitled_43"
+    },
+    {
+      "from": "untitled_75",
+      "to": "f6_untitled_23"
+    },
+    {
+      "from": "untitled_76",
+      "to": "f6_untitled_32"
+    },
+    {
+      "from": "untitled_108",
+      "to": "f6_untitled_70"
+    },
+    {
+      "from": "f6_untitled_32",
+      "to": "untitled_15_2"
+    },
+    {
+      "from": "f6_untitled_43",
+      "to": "untitled_19_2"
+    },
+    {
+      "from": "f6_untitled_44",
+      "to": "untitled_74_3"
+    },
+    {
+      "from": "f6_untitled_47",
+      "to": "untitled_25_2"
+    },
+    {
+      "from": "f6_untitled_70",
+      "to": "untitled_29_2"
+    },
+    {
+      "from": "f6_untitled_77",
+      "to": "untitled_31_2"
+    },
+    {
+      "from": "untitled_138",
+      "to": "untitled_73"
+    },
+    {
+      "from": "untitled_138",
+      "to": "untitled_159_2"
+    },
+    {
+      "from": "untitled_159_2",
+      "to": "untitled_137"
+    },
+    {
+      "from": "untitled_159_2",
+      "to": "untitled_74"
+    },
+    {
+      "from": "untitled_161",
+      "to": "untitled_135"
+    },
+    {
+      "from": "untitled_136",
+      "to": "untitled_161"
+    },
+    {
+      "from": "untitled_137",
+      "to": "untitled_160_2"
+    },
+    {
+      "from": "untitled_136",
+      "to": "untitled_160_2"
+    },
+    {
+      "from": "untitled_75_2",
+      "to": "untitled_19_2"
+    },
+    {
+      "from": "untitled_46_2",
+      "to": "untitled_75_2"
+    },
+    {
+      "from": "untitled_75_2",
+      "to": "untitled_45"
     }
   ]
 }

@@ -16,31 +16,38 @@ const _plans = [
     width: 1216,
     height: 864,
   ),
+  FloorPlan(
+    floor: 6,
+    asset: 'assets/floorplans/Main_6F_Floor.png',
+    width: 1216,
+    height: 864,
+  ),
+  FloorPlan(
+    floor: 7,
+    asset: 'assets/floorplans/Main_7ft_Floor.png',
+    width: 1184,
+    height: 896,
+  ),
 ];
 
-/// Walking cost of a stairs or elevator hop between floors, in plan pixels.
-/// Edges on the same floor cost the distance between their two nodes.
+/// Walking cost of riding stairs or an elevator one floor, in plan pixels.
+/// Walks on a floor cost their plan distance; this weighs a floor against
+/// them when choosing which stairs make the shortest pathway.
 const _floorChangeCost = 150.0;
 
-/// The campus graph and its pathway tree (Prim's Algorithm). Top-level finals
-/// load lazily, so this runs once, the first time a map opens, and the Map tab
-/// and the /map route share the result.
-final Future<(CampusGraph, PathwayTree)> _campus = _loadCampus();
+/// The campus graph and its pathways (Prim's Algorithm, one tree per floor).
+/// Top-level finals load lazily, so this runs once, the first time a map
+/// opens, and the Map tab and the /map route share the result.
+final Future<(CampusGraph, FloorPathways)> _campus = _loadCampus();
 
-Future<(CampusGraph, PathwayTree)> _loadCampus() async {
+Future<(CampusGraph, FloorPathways)> _loadCampus() async {
   final graph = await CampusGraph.loadAsset('assets/campus_graph.json');
-  final nodes = {for (final n in graph.nodes) n.id: n};
-  final pathways = PathwayTree.build(graph.nodes.map((n) => n.id), [
-    for (final e in graph.edges)
-      PathwayEdge(e.from, e.to, _walkCost(nodes[e.from], nodes[e.to])),
-  ]);
+  final pathways = FloorPathways.build(
+    [for (final n in graph.nodes) (id: n.id, floor: n.floor, x: n.x, y: n.y)],
+    [for (final e in graph.edges) (e.from, e.to)],
+    floorChangeCost: _floorChangeCost,
+  );
   return (graph, pathways);
-}
-
-double _walkCost(MapNode? a, MapNode? b) {
-  if (a == null || b == null) return 0; // PathwayTree.build rejects the edge
-  if (a.floor != b.floor) return _floorChangeCost;
-  return (Offset(a.x, a.y) - Offset(b.x, b.y)).distance;
 }
 
 class MapScreen extends StatelessWidget {
