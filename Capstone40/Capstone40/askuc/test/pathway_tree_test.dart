@@ -149,6 +149,90 @@ void main() {
 
       expect(pathways.route('a', 'z'), isEmpty);
     });
+
+    group('closed stairs', () {
+      // Stairs at both ends; the nearer ones, by the left, are closed.
+      FloorPathways twoStairs(Set<String> closed) => FloorPathways.build(
+        [
+          at('L1', 1, 0), at('start', 1, 10), at('R1', 1, 100), //
+          at('L2', 2, 0), at('goal', 2, 10), at('R2', 2, 100),
+        ],
+        const [
+          ('L1', 'start'), ('start', 'R1'), //
+          ('L2', 'goal'), ('goal', 'R2'),
+          ('L1', 'L2'), ('R1', 'R2'),
+        ],
+        floorChangeCost: 150,
+        closed: closed,
+      );
+
+      test('are skipped for other stairs', () {
+        expect(twoStairs(const {'L2'}).route('start', 'goal'), [
+          'start',
+          'R1',
+          'R2',
+          'goal',
+        ]);
+      });
+
+      test('can still be walked to on their floor', () {
+        expect(twoStairs(const {'L1'}).route('start', 'L1'), ['start', 'L1']);
+      });
+
+      test('leave no route when every stairs is closed', () {
+        expect(twoStairs(const {'L1', 'R2'}).route('start', 'goal'), isEmpty);
+      });
+
+      test('are not ridden through to another floor', () {
+        // One stairwell joins floors 1, 2 and 3; its floor 2 stop is closed.
+        final pathways = FloorPathways.build(
+          [at('s1', 1, 0), at('s2', 2, 0), at('s3', 3, 0)],
+          const [('s1', 's2'), ('s2', 's3')],
+          floorChangeCost: 150,
+          closed: const {'s2'},
+        );
+
+        expect(pathways.route('s1', 's3'), isEmpty);
+      });
+    });
+
+    group('closed doors', () {
+      // A room with two doors off one corridor; the front door is nearer.
+      FloorPathways twoDoors(Set<String> closed) => FloorPathways.build(
+        [
+          at('hall', 1, 0), at('front', 1, 10), at('room', 1, 20), //
+          at('hall2', 1, 0, 30), at('side', 1, 20, 30),
+        ],
+        const [
+          ('hall', 'front'), ('front', 'room'), //
+          ('hall', 'hall2'), ('hall2', 'side'), ('side', 'room'),
+        ],
+        floorChangeCost: 150,
+        closed: closed,
+      );
+
+      test('are not walked through', () {
+        expect(twoDoors(const {}).route('hall', 'room'), [
+          'hall',
+          'front',
+          'room',
+        ]);
+        expect(twoDoors(const {'front'}).route('hall', 'room'), [
+          'hall',
+          'hall2',
+          'side',
+          'room',
+        ]);
+      });
+
+      test('leave no route when they were the only way in, and say so', () {
+        final pathways = twoDoors(const {'front', 'side'});
+
+        expect(pathways.route('hall', 'room'), isEmpty);
+        // With everything open the walk would go through the front door.
+        expect(pathways.closedOnTheWay('hall', 'room'), ['front']);
+      });
+    });
   });
 
   group('campus_graph.json', () {
@@ -212,12 +296,57 @@ void main() {
 
       expect(wandering, isEmpty);
     });
+
+    test('closing the stairs a route rides moves it to open ones', () {
+      final (pathways, nodes) = _loadCampus();
+      String idOf(String name) =>
+          nodes.values.firstWhere((node) => node['name'] == name)['id']
+              as String;
+      int floorOf(String id) => nodes[id]!['floor'] as int;
+      // The stops at both ends of every ride between floors.
+      Set<String> ridden(List<String> route) => {
+        for (var i = 1; i < route.length; i++)
+          if (floorOf(route[i - 1]) != floorOf(route[i])) ...[
+            route[i - 1],
+            route[i],
+          ],
+      };
+
+      final from = idOf('CICS Dean Office');
+      final to = idOf('Physics Lab 734');
+      final closed = ridden(pathways.route(from, to));
+      expect(closed, isNotEmpty);
+
+      final (rerouted, _) = _loadCampus(closed: closed);
+      final route = rerouted.route(from, to);
+      expect(route, isNotEmpty);
+      expect(ridden(route).intersection(closed), isEmpty);
+    });
+
+    test('closing Door Library keeps routes out of the 4F library', () {
+      final (_, nodes) = _loadCampus();
+      String idOf(String name) =>
+          nodes.values.firstWhere((node) => node['name'] == name)['id']
+              as String;
+      final door = idOf('Door Library');
+      final (pathways, _) = _loadCampus(closed: {door});
+
+      // Until 3F is mapped, the 4F door is the library's only way in.
+      expect(pathways.route(idOf('Room 422'), idOf('Main Library')), isEmpty);
+      expect(pathways.closedOnTheWay(idOf('Room 422'), idOf('Main Library')), [
+        door,
+      ]);
+      // Places outside the library are still reachable.
+      expect(pathways.route(idOf('Room 422'), idOf('Room 423')), isNotEmpty);
+    });
   });
 }
 
 /// The app's pathways over the real asset: a Prim's tree per floor, joined by
-/// the stairs and elevators.
-(FloorPathways, Map<String, Map<String, dynamic>>) _loadCampus() {
+/// the stairs and elevators, minus any [closed] stops and doors.
+(FloorPathways, Map<String, Map<String, dynamic>>) _loadCampus({
+  Set<String> closed = const {},
+}) {
   final json =
       jsonDecode(File('assets/campus_graph.json').readAsStringSync())
           as Map<String, dynamic>;
@@ -240,6 +369,7 @@ void main() {
           (edge['from'] as String, edge['to'] as String),
       ],
       floorChangeCost: 150,
+      closed: closed,
     ),
     nodes,
   );

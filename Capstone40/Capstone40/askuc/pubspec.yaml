@@ -25,6 +25,7 @@ dependencies:
 
   # State management
   provider: ^6.1.5
+  firebase_ai: ^4.0.0
 
 dev_dependencies:
   flutter_test:

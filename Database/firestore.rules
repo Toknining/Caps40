@@ -105,6 +105,23 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Stairs and elevator stops closed on the admin panel's Map page, keyed by
+    // the stop's node id in campus_graph.json. The mobile app routes around
+    // them; reopening deletes the document.
+    match /mapClosures/{nodeId} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'reason', 'closedAt'])
+        && request.resource.data.keys().hasAll(['name', 'reason', 'closedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() <= 200
+        && request.resource.data.closedAt == request.time;
+      allow delete: if isAdmin();
+    }
+
     // Students deleted in the admin panel. Their Firebase login still exists,
     // so this blocks it from recreating a profile.
     match /removedStudents/{userId} {

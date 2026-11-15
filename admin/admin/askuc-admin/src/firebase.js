@@ -27,6 +27,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  writeBatch,
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -438,6 +439,48 @@ export async function createBlockedWord({ word, language }) {
 
 export async function deleteBlockedWord(id) {
   await deleteDoc(doc(db, 'blockedWords', id));
+}
+
+// Stairs and elevator stops closed on the Map page, keyed by node id. The
+// mobile app routes around them as soon as they change.
+export function subscribeToMapClosures(callback, onError) {
+  return onSnapshot(
+    collection(db, 'mapClosures'),
+    (snapshot) => {
+      callback(
+        snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })),
+      );
+    },
+    onError,
+  );
+}
+
+export async function closeMapStops(stops, reason = '') {
+  const trimmedReason = reason.trim();
+  if (trimmedReason.length > 200) {
+    throw new Error('Keep the reason under 200 characters.');
+  }
+
+  const batch = writeBatch(db);
+  for (const stop of stops) {
+    batch.set(doc(db, 'mapClosures', stop.id), {
+      name: stop.name,
+      reason: trimmedReason,
+      closedAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
+}
+
+export async function reopenMapStops(stops) {
+  const batch = writeBatch(db);
+  for (const stop of stops) {
+    batch.delete(doc(db, 'mapClosures', stop.id));
+  }
+  await batch.commit();
 }
 
 export async function adminSignIn(email, password, rememberMe = true) {

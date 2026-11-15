@@ -10,6 +10,7 @@ import '../features/home/home_screen.dart';
 import '../features/chatbot/chat_screen.dart';
 import '../features/navigation/map_screen.dart';
 import '../features/announcements/announcements_screen.dart';
+import '../features/faqs/faqs_screen.dart';
 import '../features/settings/settings_screen.dart';
 
 class AskUCApp extends StatelessWidget {
@@ -36,6 +37,7 @@ class AskUCApp extends StatelessWidget {
         AppRoutes.chat: (_) => const ChatScreen(),
         AppRoutes.map: (_) => const MapScreen(),
         AppRoutes.announcements: (_) => const AnnouncementsScreen(),
+        AppRoutes.faqs: (_) => const FaqsScreen(),
         AppRoutes.settings: (_) => const SettingsScreen(),
       },
     );

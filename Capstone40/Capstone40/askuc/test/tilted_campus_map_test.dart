@@ -7,6 +7,12 @@ import 'package:askuc/widgets/tilted_campus_map.dart';
 
 const _plans = [
   FloorPlan(
+    floor: 4,
+    asset: 'assets/floorplans/Main_4ft_Floor_transparent.png',
+    width: 2560,
+    height: 1903,
+  ),
+  FloorPlan(
     floor: 5,
     asset: 'assets/floorplans/Main_5ft_Floor_CSS.png',
     width: 1216,
@@ -29,10 +35,14 @@ const _plans = [
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late CampusGraph raw;
   late CampusGraph graph;
+  late List<FloorPlan> plans;
 
   setUpAll(() async {
-    graph = await CampusGraph.loadAsset('assets/campus_graph.json');
+    raw = await CampusGraph.loadAsset('assets/campus_graph.json');
+    // The floors lined up by their stairs, as the app loads them.
+    (graph: graph, plans: plans) = raw.alignFloors(_plans);
   });
 
   /// Pumps the map showing [floor] (every floor when null). Pumping again
@@ -52,7 +62,7 @@ void main() {
             child: TiltedCampusMap(
               graph: graph,
               controller: map,
-              plans: _plans,
+              plans: plans,
               focusedFloor: floor,
             ),
           ),
@@ -182,5 +192,56 @@ void main() {
     expect(changes, hasLength(1));
     expect(changes.single.from.id, 's5');
     expect(changes.single.to.id, 's7');
+  });
+
+  test('alignFloors lines a floor up by its stairs', () {
+    // Floor 2's plan was drawn twice as big and shifted by (10, 20).
+    MapNode at(String id, int floor, double x, double y) =>
+        MapNode(id: id, name: id, floor: floor, x: x, y: y, kind: 'stairs');
+    final campus = CampusGraph(
+      nodes: [
+        at('a1', 1, 0, 0), at('b1', 1, 100, 0), at('c1', 1, 0, 100), //
+        at('a2', 2, 10, 20), at('b2', 2, 210, 20), at('c2', 2, 10, 220),
+      ],
+      edges: const [
+        MapEdge(from: 'a1', to: 'a2'),
+        MapEdge(from: 'b1', to: 'b2'),
+        MapEdge(from: 'c1', to: 'c2'),
+      ],
+    );
+    const floorPlans = [
+      FloorPlan(floor: 1, asset: 'one.png', width: 100, height: 100),
+      FloorPlan(floor: 2, asset: 'two.png', width: 200, height: 200),
+    ];
+
+    final (graph: lined, plans: placed) = campus.alignFloors(floorPlans);
+
+    for (final (one, two) in [('a1', 'a2'), ('b1', 'b2'), ('c1', 'c2')]) {
+      final p = lined.byId(one)!, q = lined.byId(two)!;
+      expect(q.x, closeTo(p.x, 1e-9));
+      expect(q.y, closeTo(p.y, 1e-9));
+    }
+    expect(placed.first.scale, 1); // floor 1 stays put on a tie
+    expect(placed.last.scale, closeTo(0.5, 1e-9));
+    expect(placed.last.place(const Offset(210, 20)).dx, closeTo(100, 1e-9));
+  });
+
+  test('every real floor lines up with the floors next to it', () {
+    final byId = {for (final n in graph.nodes) n.id: n};
+    final apart = <String>[];
+    for (final e in graph.edges) {
+      final a = byId[e.from]!, b = byId[e.to]!;
+      if (a.floor == b.floor) continue;
+      // Each floor's nodes were placed by hand, so the same stairs land a
+      // little apart; a floor out of line would be hundreds of px off.
+      final d = (Offset(a.x, a.y) - Offset(b.x, b.y)).distance;
+      if (d > 50) apart.add('${a.name} -> ${b.name}: ${d.round()} px');
+    }
+
+    expect(apart, isEmpty);
+    final five = plans.firstWhere((p) => p.floor == 5);
+    expect((five.scale, five.offset), (1, Offset.zero)); // 5F stays put
+    // 4F's plan image was drawn about 2.3 times as big as 5F's.
+    expect(plans.first.scale, closeTo(0.44, 0.01));
   });
 }

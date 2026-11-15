@@ -28,7 +28,9 @@ class MapNode {
   final String name;
   final String building;
   final int floor;
-  final double x; // pixel coords in the ORIGINAL, untilted floor plan image
+  // Pixel coords in the ORIGINAL, untilted floor plan image; after
+  // CampusGraph.alignFloors, coords on the plan every floor shares.
+  final double x;
   final double y;
   final String kind;
 
@@ -72,12 +74,24 @@ class FloorPlan {
   final String asset;
   final double width;
   final double height;
+
+  /// Where the image sits on the plan every floor shares: image pixel (x, y)
+  /// lands at [offset] + (x, y) × [scale]. [CampusGraph.alignFloors] sets
+  /// these, so floors drawn at different sizes still line up.
+  final double scale;
+  final Offset offset;
+
   const FloorPlan({
     required this.floor,
     required this.asset,
     required this.width,
     required this.height,
+    this.scale = 1,
+    this.offset = Offset.zero,
   });
+
+  /// Image pixel [p] on the shared plan.
+  Offset place(Offset p) => offset + p * scale;
 }
 
 class CampusGraph {
@@ -104,6 +118,112 @@ class CampusGraph {
     }
     return null;
   }
+
+  /// Lines every floor up with the others, so stacked floors match,
+  /// switching floors keeps the same spot, and walks compare fairly across
+  /// floors, even when the plan images were drawn at different sizes.
+  ///
+  /// The stairs and elevator links between floors are the anchors: each
+  /// floor gets the scale and shift that best lays its stairs over the same
+  /// stairs on a floor already lined up. The floor with the most stairs links
+  /// stays as it is; the nodes and [plans] of the others move onto it.
+  ({CampusGraph graph, List<FloorPlan> plans}) alignFloors(
+    List<FloorPlan> plans,
+  ) {
+    final byId = {for (final n in nodes) n.id: n};
+    final stairs = <(MapNode, MapNode)>[];
+    final linksOn = <int, int>{};
+    for (final e in edges) {
+      final a = byId[e.from], b = byId[e.to];
+      if (a == null || b == null || a.floor == b.floor) continue;
+      stairs.add((a, b));
+      linksOn[a.floor] = (linksOn[a.floor] ?? 0) + 1;
+      linksOn[b.floor] = (linksOn[b.floor] ?? 0) + 1;
+    }
+    if (stairs.isEmpty) return (graph: this, plans: plans);
+
+    final floors = linksOn.keys.toList()..sort();
+    // The floor with the most stairs links (the lowest on a tie) stays put.
+    final anchor = floors.reduce(
+      (best, f) => linksOn[f]! > linksOn[best]! ? f : best,
+    );
+    final fits = <int, (double, Offset)>{anchor: (1, Offset.zero)};
+    Offset placed(MapNode n) {
+      final (scale, offset) = fits[n.floor]!;
+      return offset + Offset(n.x, n.y) * scale;
+    }
+
+    // Spread out from the anchor, fitting each floor to floors already done.
+    for (var grew = true; grew;) {
+      grew = false;
+      for (final floor in floors) {
+        if (fits.containsKey(floor)) continue;
+        final matches = <(Offset, Offset)>[
+          for (final (a, b) in stairs)
+            if (a.floor == floor && fits.containsKey(b.floor))
+              (Offset(a.x, a.y), placed(b))
+            else if (b.floor == floor && fits.containsKey(a.floor))
+              (Offset(b.x, b.y), placed(a)),
+        ];
+        if (matches.isEmpty) continue;
+        fits[floor] = _bestFit(matches);
+        grew = true;
+      }
+    }
+
+    MapNode move(MapNode n) {
+      if (!fits.containsKey(n.floor)) return n;
+      final p = placed(n);
+      return MapNode(
+        id: n.id,
+        name: n.name,
+        building: n.building,
+        floor: n.floor,
+        x: p.dx,
+        y: p.dy,
+        kind: n.kind,
+      );
+    }
+
+    return (
+      graph: CampusGraph(nodes: [for (final n in nodes) move(n)], edges: edges),
+      plans: [
+        for (final p in plans)
+          if (fits[p.floor] case (final scale, final offset))
+            FloorPlan(
+              floor: p.floor,
+              asset: p.asset,
+              width: p.width,
+              height: p.height,
+              scale: scale,
+              offset: offset,
+            )
+          else
+            p,
+      ],
+    );
+  }
+}
+
+/// The scale and shift that best lay each first point of [matches] over its
+/// second point, by least squares.
+(double, Offset) _bestFit(List<(Offset, Offset)> matches) {
+  var from = Offset.zero, to = Offset.zero;
+  for (final (p, q) in matches) {
+    from += p;
+    to += q;
+  }
+  from /= matches.length.toDouble();
+  to /= matches.length.toDouble();
+  var cross = 0.0, spread = 0.0;
+  for (final (p, q) in matches) {
+    final dp = p - from, dq = q - to;
+    cross += dp.dx * dq.dx + dp.dy * dq.dy;
+    spread += dp.dx * dp.dx + dp.dy * dp.dy;
+  }
+  // A single match, or matches all on one spot, can only fix the shift.
+  final scale = spread > 0 && cross > 0 ? cross / spread : 1.0;
+  return (scale, to - from * scale);
 }
 
 /// A change of floor along a route: leave by the stairs or lift at [from] and
@@ -168,6 +288,9 @@ class TiltedCampusMap extends StatefulWidget {
   /// Node ids in walking order, from your routing backend.
   final List<String> routeIds;
 
+  /// Stairs and elevator stops that are closed, marked with a red cross.
+  final Set<String> closedIds;
+
   final String? originId;
   final String? destinationId;
 
@@ -197,6 +320,7 @@ class TiltedCampusMap extends StatefulWidget {
     required this.graph,
     required this.plans,
     this.routeIds = const [],
+    this.closedIds = const {},
     this.originId,
     this.destinationId,
     this.focusedFloor,
@@ -443,7 +567,7 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
               Offset(0, p.height),
               Offset(p.width, p.height),
             ])
-              (corner, p.floor),
+              (p.place(corner), p.floor),
       ];
     }
 
@@ -615,12 +739,12 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
 
   // ------------------------------------------------------------ drawing
 
-  /// Draws a plan image straight onto the map: plan pixel (x, y) lands where
-  /// [_toScreen] says.
-  Matrix4 _planMatrix(_View v, int floor) {
+  /// Draws a plan image straight onto the map: image pixel (x, y) lands where
+  /// [_toScreen] puts its place on the shared plan.
+  Matrix4 _planMatrix(_View v, FloorPlan plan) {
     final c = math.cos(v.azimuth), s = math.sin(v.azimuth);
-    final k = widget.squash, z = v.zoom;
-    final origin = _toScreen(v, Offset.zero, floor);
+    final k = widget.squash, z = v.zoom * plan.scale;
+    final origin = _toScreen(v, plan.offset, plan.floor);
     return Matrix4(
       z * c,
       z * k * s,
@@ -694,7 +818,7 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
                 left: 0,
                 top: 0,
                 child: Transform(
-                  transform: _planMatrix(v, p.floor),
+                  transform: _planMatrix(v, p),
                   // No sheet behind the image: plans are transparent PNGs that
                   // carry their own walls and shadows.
                   child: SizedBox(
@@ -732,6 +856,7 @@ class _TiltedCampusMapState extends State<TiltedCampusMap>
                     view: v,
                     zoom: v.zoom,
                     routeIds: widget.routeIds,
+                    closedIds: widget.closedIds,
                     originId: widget.originId,
                     destinationId: widget.destinationId,
                     focusedFloor: focused,
@@ -843,6 +968,7 @@ class _OverlayPainter extends CustomPainter {
   final Object view;
   final double zoom;
   final List<String> routeIds;
+  final Set<String> closedIds;
   final String? originId;
   final String? destinationId;
   final int? focusedFloor;
@@ -859,6 +985,7 @@ class _OverlayPainter extends CustomPainter {
     required this.view,
     required this.zoom,
     required this.routeIds,
+    this.closedIds = const {},
     this.originId,
     this.destinationId,
     this.focusedFloor,
@@ -937,6 +1064,10 @@ class _OverlayPainter extends CustomPainter {
           }
           continue;
         }
+        if (closedIds.contains(n.id)) {
+          _drawClosed(canvas, p); // closed stairs or lift
+          continue;
+        }
         if (n.kind == 'hall' && zoom < 0.6) continue;
         canvas.drawCircle(
           p,
@@ -946,6 +1077,11 @@ class _OverlayPainter extends CustomPainter {
         continue;
       }
 
+      if (closedIds.contains(n.id)) {
+        _drawClosed(canvas, p); // a closed door keeps its name
+        labels.add((n, p, 2));
+        continue;
+      }
       final r = lit ? dot + 1 : dot;
       canvas.drawCircle(p, r + 2.5, Paint()..color = Colors.white);
       canvas.drawCircle(
@@ -1072,6 +1208,28 @@ class _OverlayPainter extends CustomPainter {
     }
   }
 
+  /// Something closed (stairs, a lift or a door): a red dot with a white
+  /// cross.
+  void _drawClosed(Canvas canvas, Offset p) {
+    canvas.drawCircle(p, 7.5, Paint()..color = Colors.white);
+    canvas.drawCircle(p, 6, Paint()..color = _flagRed);
+    final cross = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(
+      p + const Offset(-2.6, -2.6),
+      p + const Offset(2.6, 2.6),
+      cross,
+    );
+    canvas.drawLine(
+      p + const Offset(-2.6, 2.6),
+      p + const Offset(2.6, -2.6),
+      cross,
+    );
+  }
+
   void _dashed(
     Canvas canvas,
     Offset a,
@@ -1096,6 +1254,7 @@ class _OverlayPainter extends CustomPainter {
       old.view != view ||
       old.graph != graph ||
       old.routeIds != routeIds ||
+      old.closedIds != closedIds ||
       old.originId != originId ||
       old.destinationId != destinationId ||
       old.focusedFloor != focusedFloor ||

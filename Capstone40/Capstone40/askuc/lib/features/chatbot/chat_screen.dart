@@ -4,14 +4,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/routes.dart';
+import '../../services/askuc_assistant.dart';
+
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key}) : onClose = null;
+  const ChatScreen({super.key}) : onClose = null, onNavigate = null;
 
   // Shows the chat as a floating window instead of a full page. Closing it
-  // calls [onClose] instead of popping the route.
-  const ChatScreen.floating({super.key, required VoidCallback this.onClose});
+  // calls [onClose] instead of popping the route, and a recommendation
+  // button calls [onNavigate] instead of opening the screen on top.
+  const ChatScreen.floating({
+    super.key,
+    required VoidCallback this.onClose,
+    this.onNavigate,
+  });
 
   final VoidCallback? onClose;
+  final ValueChanged<ChatDestination>? onNavigate;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -36,6 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
   double _dragDistance = 0;
 
   bool _isTyping = false;
+  final _assistant = AskUCAssistant();
   Future<List<String>>? _blockedWordsFuture;
   DateTime? _blockedWordsCachedAt;
 
@@ -113,32 +123,35 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     // --------------------------------------------------------------
-    // TEMPORARY RESPONSE
+    // RESPONSE: Gemini first. If it can't be reached, the closest FAQ,
+    // then the rule-based reply.
     // --------------------------------------------------------------
 
-    Future.delayed(const Duration(milliseconds: 900), () async {
-      final knowledgeBaseAnswer = await _findKnowledgeBaseAnswer(message);
-      if (!mounted) {
-        return;
-      }
+    final answer =
+        await _assistant.reply(message) ??
+        await _findKnowledgeBaseAnswer(message) ??
+        _getDemoResponse(message);
+    if (!mounted) {
+      return;
+    }
 
-      setState(() {
-        _isTyping = false;
+    setState(() {
+      _isTyping = false;
 
-        _messages.add(
-          _ChatMessage(
-            text:
-                '${knowledgeBaseAnswer ?? _getDemoResponse(message)}\n\n'
-                'Recommendation: '
-                '${_recommendationForIntent(_recognizeIntent(message), _recognizeLanguage(message))}',
-            isUser: false,
-            time: _currentTime(),
+      _messages.add(
+        _ChatMessage(
+          text: answer,
+          isUser: false,
+          time: _currentTime(),
+          recommendation: _recommendationForIntent(
+            _recognizeIntent(message),
+            _recognizeLanguage(message),
           ),
-        );
-      });
-
-      _scrollToBottom();
+        ),
+      );
     });
+
+    _scrollToBottom();
   }
 
   Future<List<String>> _loadBlockedWords() async {
@@ -410,50 +423,58 @@ class _ChatScreenState extends State<ChatScreen> {
     return 'English';
   }
 
-  String _recommendationForIntent(String intent, String language) {
-    if (language == 'Cebuano') {
-      switch (intent) {
-        case 'library_location':
-          return 'Ablihi ang Campus Map aron pangitaon ang Library ug makita ang agianan.';
-        case 'opening_hours':
-          return 'Tan-awa ang Announcements para sa mga kausaban sa oras.';
-        case 'office_contact':
-          return 'Tan-awa ang campus FAQs alang sa impormasyon sa opisina.';
-        case 'announcements':
-          return 'Ablihi ang Announcements aron mabasa ang pinakabag-ong mga pahibalo.';
-        default:
-          return 'Pangutana bahin sa Library, opisina, oras, o mga pahibalo sa campus.';
-      }
-    }
-    if (language == 'Tagalog') {
-      switch (intent) {
-        case 'library_location':
-          return 'Buksan ang Campus Map para mahanap ang Library at makita ang ruta.';
-        case 'opening_hours':
-          return 'Tingnan ang Announcements para sa mga pagbabago sa oras.';
-        case 'office_contact':
-          return 'Tingnan ang campus FAQs para sa impormasyon ng opisina.';
-        case 'announcements':
-          return 'Buksan ang Announcements para mabasa ang pinakabagong mga anunsyo.';
-        default:
-          return 'Magtanong tungkol sa Library, opisina, oras, o mga anunsyo sa campus.';
-      }
-    }
+  // ================================================================
+  // RULE-BASED RECOMMENDATION
+  // ================================================================
 
+  // Picks the screen to suggest under a reply from the question's intent,
+  // labelled in the question's language. Intents with nowhere useful to
+  // go get no button.
+  _ChatRecommendation? _recommendationForIntent(
+    String intent,
+    String language,
+  ) {
     switch (intent) {
       case 'library_location':
-        return 'Open the Campus Map to locate the Library and plan your route.';
-      case 'opening_hours':
-        return 'Check Announcements for schedule changes before you visit.';
       case 'office_contact':
-        return 'Browse the campus FAQs for office contact information.';
+        return _ChatRecommendation(
+          destination: ChatDestination.campusMap,
+          label: switch (language) {
+            'Cebuano' => 'Ablihi ang Campus Map',
+            'Tagalog' => 'Buksan ang Campus Map',
+            _ => 'Open Campus Map',
+          },
+        );
+      case 'opening_hours':
       case 'announcements':
-        return 'Open Announcements to read the latest campus updates.';
-      case 'faq':
-        return 'Try asking about a campus location, office, or opening hours.';
+        return _ChatRecommendation(
+          destination: ChatDestination.announcements,
+          label: switch (language) {
+            'Cebuano' => 'Ablihi ang Announcements',
+            'Tagalog' => 'Buksan ang Announcements',
+            _ => 'Open Announcements',
+          },
+        );
       default:
-        return 'Try asking about the Library, office contacts, opening hours, or announcements.';
+        return null;
     }
+  }
+
+  void _openRecommendation(ChatDestination destination) {
+    final onNavigate = widget.onNavigate;
+    if (onNavigate != null) {
+      onNavigate(destination);
+      return;
+    }
+
+    // The full-page chat opens the screen on top of itself, so Back returns
+    // to the conversation.
+    Navigator.pushNamed(
+      context,
+      destination == ChatDestination.campusMap
+          ? AppRoutes.map
+          : AppRoutes.announcements,
+    );
   }
 
   // ================================================================
@@ -915,6 +936,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
 
+                if (message.recommendation != null) ...[
+                  const SizedBox(height: 2),
+
+                  _recommendationButton(message.recommendation!),
+                ],
+
                 const SizedBox(height: 5),
 
                 Padding(
@@ -931,6 +958,60 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================================================================
+  // RECOMMENDATION BUTTON
+  // ================================================================
+
+  Widget _recommendationButton(_ChatRecommendation recommendation) {
+    return OutlinedButton(
+      onPressed: () => _openRecommendation(recommendation.destination),
+
+      style: OutlinedButton.styleFrom(
+        backgroundColor: const Color(0xFFEAF3FC),
+
+        side: const BorderSide(color: Color(0xFFD4E3F2)),
+
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+
+        padding: const EdgeInsets.only(left: 12, right: 8),
+
+        minimumSize: const Size(0, 36),
+      ),
+
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+
+        children: [
+          Icon(recommendation.icon, size: 16, color: const Color(0xFF0866E8)),
+
+          const SizedBox(width: 6),
+
+          Flexible(
+            child: Text(
+              recommendation.label,
+
+              overflow: TextOverflow.ellipsis,
+
+              style: const TextStyle(
+                color: Color(0xFF0866E8),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 2),
+
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 18,
+            color: Color(0xFF0866E8),
           ),
         ],
       ),
@@ -1231,5 +1312,31 @@ class _ChatMessage {
   final bool isUser;
   final String time;
 
-  _ChatMessage({required this.text, required this.isUser, required this.time});
+  // Shown as a button under an assistant reply.
+  final _ChatRecommendation? recommendation;
+
+  _ChatMessage({
+    required this.text,
+    required this.isUser,
+    required this.time,
+    this.recommendation,
+  });
+}
+
+// ==================================================================
+// CHAT RECOMMENDATION MODEL
+// ==================================================================
+
+/// Screens a recommendation button under a reply can open.
+enum ChatDestination { campusMap, announcements }
+
+class _ChatRecommendation {
+  final ChatDestination destination;
+  final String label;
+
+  const _ChatRecommendation({required this.destination, required this.label});
+
+  IconData get icon => destination == ChatDestination.campusMap
+      ? Icons.map_outlined
+      : Icons.campaign_outlined;
 }

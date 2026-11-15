@@ -156,15 +156,29 @@ typedef PathwayNode = ({String id, int floor, double x, double y});
 /// there is no other way, e.g. two parts of a floor that only meet on another
 /// floor.
 class FloorPathways {
-  FloorPathways._(this._nodes, this._trees, this._stairs, this._floorCost);
+  FloorPathways._(
+    this._nodes,
+    this._trees,
+    this._stairs,
+    this._floorCost,
+    this._links,
+    this._closed,
+  );
 
   /// Builds one pathway tree per floor from [nodes] and the undirected
   /// [links]. Links between floors are stairs and elevators; each floor
   /// ridden costs [floorChangeCost], in the same units as plan distance.
+  ///
+  /// Stairs and elevator stops in [closed] are out of service: no ride
+  /// starts, ends or passes there, so walks take other stairs. They stay on
+  /// their floor's pathway, so a walk can still reach one. Anything else in
+  /// [closed], such as a door, can't be walked through: its links are left
+  /// out, so walks go another way, or nowhere if it was the only way in.
   factory FloorPathways.build(
     Iterable<PathwayNode> nodes,
     Iterable<(String, String)> links, {
     required double floorChangeCost,
+    Set<String> closed = const {},
   }) {
     final byId = <String, PathwayNode>{};
     for (final n in nodes) {
@@ -174,18 +188,27 @@ class FloorPathways {
       byId[n.id] = n;
     }
 
-    final corridors = <int, List<PathwayEdge>>{};
-    final stairs = <String, List<String>>{};
-    for (final (from, to) in links) {
+    final allLinks = links.toList();
+    final stops = <String>{}; // nodes with a ride to another floor
+    for (final (from, to) in allLinks) {
       final a = byId[from], b = byId[to];
       if (a == null || b == null) {
         throw ArgumentError('Link $from -> $to has a missing node');
       }
+      if (a.floor != b.floor) stops.addAll([from, to]);
+    }
+    bool shut(String id) => closed.contains(id) && !stops.contains(id);
+
+    final corridors = <int, List<PathwayEdge>>{};
+    final stairs = <String, List<String>>{};
+    for (final (from, to) in allLinks) {
+      final a = byId[from]!, b = byId[to]!;
       if (a.floor == b.floor) {
+        if (shut(from) || shut(to)) continue;
         corridors
             .putIfAbsent(a.floor, () => [])
             .add(PathwayEdge(from, to, _distance(a, b)));
-      } else {
+      } else if (!closed.contains(from) && !closed.contains(to)) {
         stairs.putIfAbsent(from, () => []).add(to);
         stairs.putIfAbsent(to, () => []).add(from);
       }
@@ -198,7 +221,14 @@ class FloorPathways {
             if (n.floor == floor) n.id,
         ], corridors[floor] ?? const []),
     };
-    return FloorPathways._(byId, trees, stairs, floorChangeCost);
+    return FloorPathways._(
+      byId,
+      trees,
+      stairs,
+      floorChangeCost,
+      allLinks,
+      Set.unmodifiable(closed),
+    );
   }
 
   /// How many times a walk may switch from one stairwell to another, e.g.
@@ -209,6 +239,26 @@ class FloorPathways {
   final Map<int, PathwayTree> _trees;
   final Map<String, List<String>> _stairs; // links between floors
   final double _floorCost;
+  final List<(String, String)> _links;
+  final Set<String> _closed;
+
+  /// The same pathways with nothing closed, built only when needed.
+  late final FloorPathways _allOpen = FloorPathways.build(
+    _nodes.values,
+    _links,
+    floorChangeCost: _floorCost,
+  );
+
+  /// The closed stops and doors the walk from [fromId] to [toId] would pass
+  /// if they were open, in walking order. Empty if nothing closed is in the
+  /// way, e.g. when the two places were never connected.
+  List<String> closedOnTheWay(String fromId, String toId) {
+    if (_closed.isEmpty) return const [];
+    return [
+      for (final id in _allOpen.route(fromId, toId))
+        if (_closed.contains(id)) id,
+    ];
+  }
 
   /// The stairs and elevator stops on each floor.
   late final Map<int, List<String>> _landings = {

@@ -1069,9 +1069,16 @@ input {
   font-size: 11px;
 }
 
+/* Like the knowledge base, the blocked-word list scrolls inside its card
+   once it gets long, so adding words doesn't make the page longer. */
 .blocked-word-list {
   display: grid;
   gap: 9px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 0 6px 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 .blocked-word-item {
@@ -1241,9 +1248,16 @@ input {
   font-size: 10px;
 }
 
+/* The knowledge base scrolls inside its card instead of growing with every
+   FAQ, so the Chatbot Word Filter below stays in place. */
 .faq-list {
   display: grid;
   gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0 6px 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 .faq-item {
@@ -1323,91 +1337,346 @@ input {
    MAP
 ============================================================ */
 
+.map-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.map-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid #e6edf4;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.map-summary-card > span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.map-summary-card strong {
+  color: #1f2937;
+  font-size: 23px;
+}
+
+.map-summary-card.warning {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.map-summary-card.warning strong {
+  color: #dc2626;
+}
+
+.map-alert {
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff7f7;
+  color: #b42318;
+  font-size: 12px;
+}
+
 .map-management {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
   gap: 15px;
+  align-items: start;
 }
 
 .map-preview,
 .location-list {
-  background: white;
-  border: 1px solid #e2e6e9;
-  border-radius: 7px;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #e6edf4;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
-.map-preview {
-  padding: 15px;
-}
-
-.map-placeholder {
-  height: 500px;
-  border-radius: 6px;
-  background: #e5eef7;
+.map-preview-header {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.map-icon {
-  font-size: 60px;
-  color: #087cf2;
-}
-
-.map-placeholder h3 {
-  margin: 12px 0 4px;
+.map-preview-header h3,
+.location-list h3 {
+  margin: 0;
+  color: #1f2937;
   font-size: 14px;
 }
 
-.map-placeholder p {
-  margin: 0;
-  color: #8c98a2;
-  font-size: 9px;
+.map-preview-header p,
+.map-panel-note {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 11px;
 }
 
-.location-list {
-  padding: 15px;
+.map-floor-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f1f5f9;
 }
 
-.location-list h3 {
-  margin: 0 0 15px;
+.map-floor-tabs button {
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 12px;
+  background: transparent;
+  color: #475569;
   font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.location-item {
+.map-floor-tabs button.active {
+  background: #087cf2;
+  color: #ffffff;
+}
+
+.floor-plan {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e6edf4;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.floor-plan img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.floor-plan svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.floor-plan-link {
+  stroke: rgba(8, 124, 242, 0.35);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.floor-plan-point.place {
+  fill: #1f2937;
+  stroke: #ffffff;
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.floor-plan-point.hall {
+  fill: rgba(100, 116, 139, 0.55);
+}
+
+.floor-plan-stop {
+  cursor: pointer;
+}
+
+.floor-plan-stop:focus {
+  outline: none;
+}
+
+.floor-plan-stop circle {
+  fill: #16a34a;
+  stroke: #ffffff;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.floor-plan-stop.closed circle {
+  fill: #dc2626;
+}
+
+.floor-plan-stop:hover circle,
+.floor-plan-stop:focus-visible circle {
+  stroke: #1f2937;
+}
+
+.floor-plan-stop.locked {
+  cursor: default;
+}
+
+.floor-plan-stop text {
+  fill: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 12px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.place {
+  background: #1f2937;
+}
+
+.legend-dot.hall {
+  background: rgba(100, 116, 139, 0.55);
+}
+
+.legend-dot.open {
+  background: #16a34a;
+}
+
+.legend-dot.closed {
+  background: #dc2626;
+}
+
+.location-list .map-panel-note {
+  margin-bottom: 6px;
+}
+
+.stairwell-item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 11px 0;
-  border-bottom: 1px solid #eeeeee;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef2f6;
 }
 
 .location-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 5px;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: #eaf3ff;
   color: #087cf2;
+  font-size: 13px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.stairwell-item.has-closed .location-icon {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .location-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
 .location-info strong {
-  font-size: 9px;
+  color: #1f2937;
+  font-size: 12px;
 }
 
 .location-info span {
   margin-top: 3px;
-  color: #999;
-  font-size: 7px;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.stairwell-item.has-closed .location-info span {
+  color: #dc2626;
+}
+
+.stop-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.stop-chip {
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stop-chip.closed {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+  text-decoration: line-through;
+}
+
+.stairwell-item .small-button {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.stop-chip:disabled,
+.stairwell-item .small-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.small-button.danger {
+  color: #dc2626;
+}
+
+.map-check {
+  margin-top: 16px;
+}
+
+.map-check p {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.map-check-ok {
+  color: #15803d;
+}
+
+.map-check-problem,
+.map-check ul {
+  color: #b42318;
+}
+
+.map-check ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 11px;
 }
 
 .small-button {
@@ -1539,6 +1808,14 @@ input {
 
   .charts-grid,
   .bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .map-management {
     grid-template-columns: 1fr;
   }
 

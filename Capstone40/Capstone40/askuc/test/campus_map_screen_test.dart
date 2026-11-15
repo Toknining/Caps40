@@ -11,13 +11,17 @@ void main() {
   late CampusGraph graph;
   late FloorPathways pathways;
 
+  /// The app's pathways with the [closed] stairs and elevator stops.
+  FloorPathways pathwaysWith(Set<String> closed) => FloorPathways.build(
+    [for (final n in graph.nodes) (id: n.id, floor: n.floor, x: n.x, y: n.y)],
+    [for (final e in graph.edges) (e.from, e.to)],
+    floorChangeCost: 150,
+    closed: closed,
+  );
+
   setUpAll(() async {
     graph = await CampusGraph.loadAsset('assets/campus_graph.json');
-    pathways = FloorPathways.build(
-      [for (final n in graph.nodes) (id: n.id, floor: n.floor, x: n.x, y: n.y)],
-      [for (final e in graph.edges) (e.from, e.to)],
-      floorChangeCost: 150,
-    );
+    pathways = pathwaysWith(const {});
   });
 
   MapNode named(String name) => graph.nodes.firstWhere((n) => n.name == name);
@@ -25,7 +29,14 @@ void main() {
   TiltedCampusMap mapIn(WidgetTester tester) =>
       tester.widget<TiltedCampusMap>(find.byType(TiltedCampusMap));
 
-  Future<List<String>> pumpScreen(WidgetTester tester) async {
+  /// Pumps the screen; pumping again with other [closed] stops or doors
+  /// updates the same screen, the way the Map tab does when an admin closes
+  /// one. [reasons] are what the admin wrote, by id.
+  Future<List<String>> pumpScreen(
+    WidgetTester tester, {
+    Set<String> closed = const {},
+    Map<String, String> reasons = const {},
+  }) async {
     tester.view.physicalSize = const Size(393 * 2, 852 * 2);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -55,7 +66,9 @@ void main() {
               height: 896,
             ),
           ],
-          pathways: pathways,
+          pathways: closed.isEmpty ? pathways : pathwaysWith(closed),
+          closedIds: closed,
+          closureReasons: reasons,
           onRouteShown: (from, to) => shown.add('${from.name} -> ${to.name}'),
         ),
       ),
@@ -155,6 +168,127 @@ void main() {
       final size = tester.getSize(find.byType(TiltedCampusMap));
       final arrival = map.controller!.positionOf(change.to.id)!;
       expect((Offset.zero & size).deflate(20).contains(arrival), isTrue);
+    });
+
+    testWidgets('a pathway on show moves off stairs that close', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      await choose(tester, 'Select starting point', 'dean', 'CICS Dean Office');
+      await choose(tester, 'Select destination', '734', 'Physics Lab 734');
+      await tester.tap(find.text('GENERATE ROUTE'));
+      await tester.pumpAndSettle();
+
+      final dean = named('CICS Dean Office');
+      final lab = named('Physics Lab 734');
+      final before = [for (final id in mapIn(tester).routeIds) graph.byId(id)!];
+      // Close the stops the pathway rides between, as an admin would.
+      final closed = {
+        for (final change in floorChanges(before)) ...[
+          change.from.id,
+          change.to.id,
+        ],
+      };
+      final shown = await pumpScreen(tester, closed: closed);
+      await tester.pumpAndSettle();
+
+      final after = mapIn(tester).routeIds;
+      expect(after, pathwaysWith(closed).route(dean.id, lab.id));
+      expect(after, isNotEmpty);
+      expect(after, isNot(before.map((n) => n.id).toList()));
+      expect(mapIn(tester).closedIds, closed);
+      // The first closed stop the old pathway reached is named.
+      expect(
+        find.text(
+          '${floorChanges(before).first.from.name} on your pathway closed. '
+          'Showing another pathway.',
+        ),
+        findsOneWidget,
+      );
+      expect(shown, isEmpty); // a redone pathway isn't a new search
+    });
+
+    testWidgets('a closed door says why a place is out of reach', (
+      tester,
+    ) async {
+      final door = named('Door Library');
+      await pumpScreen(
+        tester,
+        closed: {door.id},
+        reasons: {door.id: "Use the library's 3F entrance"},
+      );
+      await choose(tester, 'Select starting point', '422', 'Room 422');
+      await choose(tester, 'Select destination', 'main lib', 'Main Library');
+      await tester.tap(find.text('GENERATE ROUTE'));
+      await tester.pump();
+
+      expect(
+        find.text(
+          "No open pathway right now: Door Library is closed. Use the "
+          "library's 3F entrance.",
+        ),
+        findsOneWidget,
+      );
+      expect(mapIn(tester).routeIds, isEmpty);
+    });
+
+    testWidgets('closed places are listed but cannot be picked', (
+      tester,
+    ) async {
+      final door = named('Door Library');
+      await pumpScreen(
+        tester,
+        closed: {door.id},
+        reasons: {door.id: "Use the library's 3F entrance"},
+      );
+      await tester.tap(
+        find
+            .ancestor(
+              of: find.text('Select destination'),
+              matching: find.byType(InkWell),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'door');
+      await tester.pump();
+
+      expect(
+        find.text(
+          "${door.building} · Floor 4 · Closed · Use the library's 3F "
+          'entrance',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Door Library'));
+      await tester.pumpAndSettle();
+      // Nothing was picked: the list is still open, with no destination.
+      expect(find.text('Door Library'), findsOneWidget);
+      expect(mapIn(tester).destinationId, isNull);
+    });
+
+    testWidgets('tapping a closed place on the map says why instead', (
+      tester,
+    ) async {
+      final door = named('Door Library');
+      await pumpScreen(
+        tester,
+        closed: {door.id},
+        reasons: {door.id: "Use the library's 3F entrance"},
+      );
+      // Show 4F by picking a place there, then bring the door to the middle.
+      await choose(tester, 'Select starting point', '422', 'Room 422');
+      mapIn(tester).controller!.centerOn(door.id, zoom: 1.3);
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(tester.getCenter(find.byType(TiltedCampusMap)));
+      await tester.pump();
+
+      expect(
+        find.text("Door Library is closed. Use the library's 3F entrance."),
+        findsOneWidget,
+      );
+      expect(find.text('Set as starting point'), findsNothing);
     });
   });
 }

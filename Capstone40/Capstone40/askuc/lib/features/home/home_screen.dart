@@ -217,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       subtitle: 'Common questions',
 
                       onTap: () {
-                        Navigator.pushNamed(context, AppRoutes.chat);
+                        Navigator.pushNamed(context, AppRoutes.faqs);
                       },
                     ),
                   ),

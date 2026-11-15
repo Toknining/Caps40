@@ -106,6 +106,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     _chatWindowController.reverse();
   }
 
+  // A recommendation button under a chat reply closes the chat window and
+  // switches to the tab it points to.
+  void _openFromChat(ChatDestination destination) {
+    _closeChatbot();
+    _changeTab(destination == ChatDestination.campusMap ? 1 : 2);
+  }
+
   // ================================================================
   // CHANGE TAB
   // ================================================================
@@ -285,7 +292,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               alignment: Alignment.bottomRight,
 
               child: SizedBox.expand(
-                child: ChatScreen.floating(onClose: _closeChatbot),
+                child: ChatScreen.floating(
+                  onClose: _closeChatbot,
+                  onNavigate: _openFromChat,
+                ),
               ),
             ),
           ),

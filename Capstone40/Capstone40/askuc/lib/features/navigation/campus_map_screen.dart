@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../widgets/tilted_campus_map.dart';
@@ -37,9 +38,18 @@ class CampusMapScreen extends StatefulWidget {
   final CampusGraph graph;
   final List<FloorPlan> plans;
 
-  /// The pathways over [graph] (Prim's, one tree per floor), built once by
-  /// whoever loads the graph.
+  /// The pathways over [graph] (Prim's, one tree per floor), built by
+  /// whoever loads the graph. New pathways, e.g. after stairs close, redo a
+  /// pathway on show.
   final FloorPathways pathways;
+
+  /// Stairs and elevator stops, and doors, an admin closed. [pathways]
+  /// already routes around them; the map and the place lists mark them.
+  final Set<String> closedIds;
+
+  /// What the admin wrote about each closure, by id, e.g. "Use the library's
+  /// 3F entrance". Shown when a closure leaves no way through.
+  final Map<String, String> closureReasons;
 
   /// Called each time a pathway is shown, e.g. to record the search.
   final void Function(MapNode from, MapNode to)? onRouteShown;
@@ -52,6 +62,8 @@ class CampusMapScreen extends StatefulWidget {
     required this.graph,
     required this.plans,
     required this.pathways,
+    this.closedIds = const {},
+    this.closureReasons = const {},
     this.onRouteShown,
     this.onBack,
   });
@@ -85,6 +97,38 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
             : a.floor.compareTo(b.floor),
       );
 
+  /// Stairs, an elevator or a door closed or reopened while a pathway is on
+  /// show: works the pathway out again, so it never goes through one closed.
+  @override
+  void didUpdateWidget(CampusMapScreen old) {
+    super.didUpdateWidget(old);
+    final from = _start;
+    final to = _destination;
+    if (widget.pathways == old.pathways ||
+        _routeIds.isEmpty ||
+        from == null ||
+        to == null) {
+      return;
+    }
+
+    final route = widget.pathways.route(from.id, to.id);
+    if (listEquals(route, _routeIds)) return;
+    final closedOnRoute = _routeIds.where(widget.closedIds.contains).toList();
+    _routeIds = route; // build() runs right after this
+    final message = closedOnRoute.isEmpty
+        ? 'Stairs, an elevator or a door reopened. Showing an updated '
+              'pathway.'
+        : route.isEmpty
+        ? '${_name(closedOnRoute.first)} on your pathway closed, and no '
+              'other pathway is open right now.${_reasons(closedOnRoute)}'
+        : '${_name(closedOnRoute.first)} on your pathway closed. Showing '
+              'another pathway.';
+    // A snackbar can't be shown in the middle of a build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _say(message);
+    });
+  }
+
   Future<void> _pick(_End end) async {
     final place = await showModalBottomSheet<MapNode>(
       context: context,
@@ -96,6 +140,8 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
             ? 'Select starting point'
             : 'Select destination',
         places: _places,
+        closedIds: widget.closedIds,
+        closureReasons: widget.closureReasons,
         selected: end == _End.start ? _start : _destination,
       ),
     );
@@ -117,7 +163,12 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
   }
 
   /// Tapping a place on the map offers it as the start or the destination.
+  /// Something closed can't be picked; the tap says why instead.
   Future<void> _onNodeTap(MapNode place) async {
+    if (widget.closedIds.contains(place.id)) {
+      _say('${place.name} is closed.${_reasons([place.id])}');
+      return;
+    }
     final end = await showModalBottomSheet<_End>(
       context: context,
       showDragHandle: true,
@@ -144,7 +195,19 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
 
     final route = widget.pathways.route(from.id, to.id);
     if (route.isEmpty) {
-      _say('No connected pathway between these places yet.');
+      // Say which closure is in the way, e.g. a locked door that was the
+      // only way in, with what the admin wrote about it.
+      final inTheWay = widget.pathways.closedOnTheWay(from.id, to.id);
+      _say(
+        inTheWay.isNotEmpty
+            ? 'No open pathway right now: ${_names(inTheWay)} '
+                  '${inTheWay.length == 1 ? 'is' : 'are'} closed.'
+                  '${_reasons(inTheWay)}'
+            : widget.closedIds.isEmpty
+            ? 'No connected pathway between these places yet.'
+            : 'No open pathway between these places right now. Some stairs, '
+                  'elevators or doors are closed.',
+      );
       return;
     }
     setState(() {
@@ -178,6 +241,26 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
     }
   }
 
+  String _name(String id) => widget.graph.byId(id)?.name ?? id;
+
+  /// e.g. "Door Library" or "5F Stairs 1 and 6F Stairs 1".
+  String _names(List<String> ids) {
+    final names = [for (final id in ids) _name(id)];
+    return names.length == 1
+        ? names.single
+        : '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
+  }
+
+  /// What the admin wrote about [ids], as sentences after a leading space,
+  /// e.g. " Use the library's 3F entrance."; '' if they wrote nothing.
+  String _reasons(List<String> ids) => [
+    for (final reason in {
+      for (final id in ids) widget.closureReasons[id]?.trim() ?? '',
+    })
+      if (reason.isNotEmpty)
+        ' $reason${RegExp(r'[.!?]$').hasMatch(reason) ? '' : '.'}',
+  ].join();
+
   void _say(String text) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -201,6 +284,7 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
       start: _start,
       destination: _destination,
       routeIds: _routeIds,
+      closedIds: widget.closedIds,
       floors: _floors,
       onFloorChanged: _showFloor,
       onNodeTap: _onNodeTap,
@@ -297,6 +381,7 @@ class _MapCard extends StatelessWidget {
   final MapNode? start;
   final MapNode? destination;
   final List<String> routeIds;
+  final Set<String> closedIds;
   final List<int> floors;
   final ValueChanged<int?> onFloorChanged;
   final ValueChanged<MapNode> onNodeTap;
@@ -315,6 +400,7 @@ class _MapCard extends StatelessWidget {
     required this.start,
     required this.destination,
     required this.routeIds,
+    required this.closedIds,
     required this.floors,
     required this.onFloorChanged,
     required this.onNodeTap,
@@ -344,6 +430,7 @@ class _MapCard extends StatelessWidget {
                 controller: controller,
                 focusedFloor: focusedFloor,
                 routeIds: routeIds,
+                closedIds: closedIds,
                 originId: start?.id,
                 destinationId: destination?.id,
                 onNodeTap: onNodeTap,
@@ -671,11 +758,17 @@ class _PlaceField extends StatelessWidget {
 class _PlaceSheet extends StatefulWidget {
   final String title;
   final List<MapNode> places;
+
+  /// Closed places are listed but can't be picked.
+  final Set<String> closedIds;
+  final Map<String, String> closureReasons;
   final MapNode? selected;
 
   const _PlaceSheet({
     required this.title,
     required this.places,
+    required this.closedIds,
+    required this.closureReasons,
     required this.selected,
   });
 
@@ -763,12 +856,19 @@ class _PlaceSheetState extends State<_PlaceSheet> {
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, i) {
                         final n = shown[i];
+                        final closed = widget.closedIds.contains(n.id);
                         return _Row(
                           icon: _iconFor(n),
                           title: n.name,
-                          subtitle: '${n.building} · Floor ${n.floor}',
+                          subtitle: _whereIs(
+                            n,
+                            closed: closed,
+                            reason: widget.closureReasons[n.id] ?? '',
+                          ),
                           selected: n.id == widget.selected?.id,
-                          onTap: () => Navigator.pop(context, n),
+                          onTap: closed
+                              ? null
+                              : () => Navigator.pop(context, n),
                         );
                       },
                     ),
@@ -780,7 +880,7 @@ class _PlaceSheetState extends State<_PlaceSheet> {
   }
 }
 
-/// What to do with a place tapped on the map.
+/// What to do with an open place tapped on the map.
 class _PlaceActions extends StatelessWidget {
   final MapNode place;
   const _PlaceActions({required this.place});
@@ -804,7 +904,7 @@ class _PlaceActions extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '${place.building} · Floor ${place.floor}',
+              _whereIs(place),
               style: const TextStyle(color: _Palette.muted, fontSize: 12),
             ),
             const SizedBox(height: 12),
@@ -830,6 +930,15 @@ class _PlaceActions extends StatelessWidget {
 
 /* ----------------------------------------------------------- lists */
 
+/// e.g. "Main Building · Floor 5", plus "· Closed" and the admin's [reason]
+/// for something closed.
+String _whereIs(MapNode n, {bool closed = false, String reason = ''}) => [
+  n.building,
+  'Floor ${n.floor}',
+  if (closed) 'Closed',
+  if (closed && reason.trim().isNotEmpty) reason.trim(),
+].join(' · ');
+
 IconData _iconFor(MapNode n) => switch (n.kind) {
   'lab' => Icons.science_outlined,
   'classroom' => Icons.chair_alt_outlined,
@@ -845,7 +954,10 @@ class _Row extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool selected;
-  final VoidCallback onTap;
+
+  /// null for something that can't be picked, e.g. closed stairs or a
+  /// locked door: the row is greyed out with a lock.
+  final VoidCallback? onTap;
   const _Row({
     required this.icon,
     required this.title,
@@ -856,6 +968,7 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
@@ -876,10 +989,14 @@ class _Row extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: _Palette.iconBg,
+                  color: enabled ? _Palette.iconBg : _Palette.bg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: _Palette.blue, size: 20),
+                child: Icon(
+                  icon,
+                  color: enabled ? _Palette.blue : _Palette.hint,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -890,10 +1007,10 @@ class _Row extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: _Palette.title,
+                        color: enabled ? _Palette.title : _Palette.muted,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -910,8 +1027,12 @@ class _Row extends StatelessWidget {
                 ),
               ),
               Icon(
-                selected ? Icons.check_rounded : Icons.chevron_right_rounded,
-                color: selected ? _Palette.blue : _Palette.chevron,
+                !enabled
+                    ? Icons.lock_outline_rounded
+                    : selected
+                    ? Icons.check_rounded
+                    : Icons.chevron_right_rounded,
+                color: selected && enabled ? _Palette.blue : _Palette.chevron,
               ),
             ],
           ),

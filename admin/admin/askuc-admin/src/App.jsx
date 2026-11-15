@@ -1,9 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import campusGraph from '@askuc-assets/campus_graph.json';
+import floor4Plan from '@askuc-assets/floorplans/Main_4ft_Floor_transparent.png';
+import floor5Plan from '@askuc-assets/floorplans/Main_5ft_Floor_CSS.png';
+import floor6Plan from '@askuc-assets/floorplans/Main_6F_Floor.png';
+import floor7Plan from '@askuc-assets/floorplans/Main_7ft_Floor.png';
+import {
+  findUnconnected,
+  groupStairwells,
+  isDoor,
+  isStop,
+  listDoors,
+} from './campusMap';
 import {
   adminSignIn,
   adminSignOut,
   auth,
   checkForAdminAccount,
+  closeMapStops,
   createBlockedWord,
   createAdminAccount,
   createAnnouncement,
@@ -18,6 +31,7 @@ import {
   getFaqs,
   getStudents,
   isAdminUser,
+  reopenMapStops,
   resetStudentPassword,
   subscribeToAdminAuthState,
   subscribeToCurrentAdminProfile,
@@ -27,6 +41,7 @@ import {
   subscribeToChatbotQueries,
   subscribeToFeedback,
   subscribeToFaqCount,
+  subscribeToMapClosures,
   subscribeToNavigationSearches,
   subscribeToStudentCount,
   updateAnnouncement,
@@ -1274,6 +1289,8 @@ function ContentPage() {
   const [submittingBlockedWord, setSubmittingBlockedWord] = useState(false);
   const [editingFaqId, setEditingFaqId] = useState(null);
   const [blockedWordsError, setBlockedWordsError] = useState('');
+  const faqListRef = useRef(null);
+  const blockedWordListRef = useRef(null);
 
   async function loadFaqs() {
     try {
@@ -1331,6 +1348,12 @@ function ContentPage() {
       setAnswer('');
       setEditingFaqId(null);
       await loadFaqs();
+
+      // New FAQs are listed first, so scroll the list back to the top to show
+      // the one just added.
+      if (!editingFaqId) {
+        faqListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } catch (error) {
       alert(error.message || 'Failed to save FAQ.');
     } finally {
@@ -1381,6 +1404,10 @@ function ContentPage() {
         language: blockedWordLanguage,
       });
       setBlockedWord('');
+
+      // New words are listed first, so scroll the list back to the top to
+      // show the one just added.
+      blockedWordListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       console.error('Failed to add blocked word:', error);
       setBlockedWordsError(error.message || 'Could not add the blocked word.');
@@ -1476,7 +1503,7 @@ function ContentPage() {
           ) : faqs.length === 0 ? (
             <p>No FAQs added yet.</p>
           ) : (
-            <div className="faq-list">
+            <div className="faq-list" ref={faqListRef}>
               {faqs.map((faq) => (
                 <div className="faq-item" key={faq.id}>
                   <div className="faq-item-header">
@@ -1589,7 +1616,7 @@ function ContentPage() {
             ) : blockedWords.length === 0 ? (
               <p>No blocked words have been added.</p>
             ) : (
-              <div className="blocked-word-list">
+              <div className="blocked-word-list" ref={blockedWordListRef}>
                 {blockedWords.map((item) => (
                   <div className="blocked-word-item" key={item.id}>
                     <div>
@@ -2103,75 +2130,239 @@ function AnnouncementsPage() {
    MAP PAGE
 ============================================================ */
 
+// The floor plans the mobile app draws its map on, by floor.
+const floorPlanImages = {
+  4: floor4Plan,
+  5: floor5Plan,
+  6: floor6Plan,
+  7: floor7Plan,
+};
+
+const campusStairwells = groupStairwells(campusGraph);
+const campusDoors = listDoors(campusGraph);
+const unconnectedPoints = findUnconnected(campusGraph);
+
 function MapPage() {
+  const floors = campusGraph.floors;
+  const [floor, setFloor] = useState(floors[0].floor);
+  const [closures, setClosures] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToMapClosures(
+      (items) => {
+        setClosures(Object.fromEntries(items.map((item) => [item.id, item])));
+        setLoading(false);
+        setError('');
+      },
+      (subscriptionError) => {
+        console.error('Failed to load map closures:', subscriptionError);
+        setError(
+          'Could not load closed stairs, elevators and doors. Deploy the Firestore '
+            + 'rules in the Database folder, then reload this page.',
+        );
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const shownFloor = floors.find((item) => item.floor === floor);
+  const closedCount = Object.keys(closures).length;
+  const locked = loading || saving || Boolean(error);
+
+  async function save(change) {
+    setSaving(true);
+
+    try {
+      await change();
+    } catch (saveError) {
+      alert(
+        saveError?.code === 'permission-denied'
+          ? 'Firestore permission denied. Deploy the Firestore rules in the Database folder first.'
+          : saveError.message || 'Failed to update the map.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function closeStops(stops, label) {
+    const reason = window.prompt(
+      `Close ${label}? Students' routes will avoid it right away.\n\n`
+        + 'Reason (optional). Students see it when this blocks their way, '
+        + 'e.g. Under maintenance, or Use the 3F entrance:',
+      '',
+    );
+    if (reason === null) {
+      return;
+    }
+
+    save(() => closeMapStops(stops, reason));
+  }
+
+  function reopenStops(stops, label) {
+    if (!window.confirm(`Reopen ${label}? Students' routes can use it again.`)) {
+      return;
+    }
+
+    save(() => reopenMapStops(stops));
+  }
+
+  function toggleStop(stop) {
+    setFloor(stop.floor);
+
+    if (closures[stop.id]) {
+      reopenStops([stop], stop.name);
+    } else {
+      closeStops([stop], stop.name);
+    }
+  }
+
   return (
     <div className="module-page">
 
       <div className="module-heading">
-
         <div>
           <h1>Campus Map</h1>
-
           <p>
-            Manage campus locations, buildings and offices.
+            Every point mapped in the AskUC app. Close stairs, elevators or doors
+            that are out of service, and students&apos; routes avoid them right away.
           </p>
         </div>
-
-        <button className="primary-button">
-          + Add Location
-        </button>
-
       </div>
+
+      <div className="map-summary">
+        <div className="map-summary-card">
+          <span>Mapped points</span>
+          <strong>{campusGraph.nodes.length}</strong>
+        </div>
+        <div className="map-summary-card">
+          <span>Walkable links</span>
+          <strong>{campusGraph.edges.length}</strong>
+        </div>
+        <div className="map-summary-card">
+          <span>Stairs and elevators</span>
+          <strong>{campusStairwells.length}</strong>
+        </div>
+        <div className={`map-summary-card ${closedCount > 0 ? 'warning' : ''}`}>
+          <span>Closed points</span>
+          <strong>{loading ? '—' : closedCount}</strong>
+        </div>
+      </div>
+
+      {error && (
+        <div className="map-alert" role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="map-management">
 
-        <div className="map-preview">
-
-          <div className="map-placeholder">
-
-            <div className="map-icon">
-              ⌖
+        <section className="map-preview">
+          <div className="map-preview-header">
+            <div>
+              <h3>{shownFloor.building} · {floor}F</h3>
+              <p>Click an S (stairs), E (elevator) or D (door) to close or reopen it.</p>
             </div>
 
-            <h3>
-              2.5D Campus Map
-            </h3>
-
-            <p>
-              Campus map management area
-            </p>
-
+            <div className="map-floor-tabs" role="tablist" aria-label="Floor">
+              {floors.map((item) => (
+                <button
+                  key={item.floor}
+                  type="button"
+                  role="tab"
+                  aria-selected={item.floor === floor}
+                  className={item.floor === floor ? 'active' : ''}
+                  onClick={() => setFloor(item.floor)}
+                >
+                  {item.floor}F
+                </button>
+              ))}
+            </div>
           </div>
 
-        </div>
-
-        <div className="location-list">
-
-          <h3>
-            Campus Locations
-          </h3>
-
-          <LocationItem
-            name="Main Building"
-            type="Building"
+          <FloorPlanView
+            floor={shownFloor}
+            closures={closures}
+            locked={locked}
+            onToggleStop={toggleStop}
           />
 
-          <LocationItem
-            name="Registrar Office"
-            type="Office"
-          />
+          <div className="map-legend">
+            <span><i className="legend-dot place" /> Room or office</span>
+            <span><i className="legend-dot hall" /> Corridor point</span>
+            <span><i className="legend-dot open" /> Open stairs, elevator or door</span>
+            <span><i className="legend-dot closed" /> Closed</span>
+          </div>
+        </section>
 
-          <LocationItem
-            name="Library"
-            type="Facility"
-          />
+        <aside className="location-list">
+          <h3>Stairs and Elevators</h3>
+          <p className="map-panel-note">
+            Close the stop on one floor, or the whole stairwell or elevator.
+          </p>
 
-          <LocationItem
-            name="Student Affairs"
-            type="Office"
-          />
+          {campusStairwells.map((stairwell) => (
+            <StairwellItem
+              key={stairwell.id}
+              stairwell={stairwell}
+              closures={closures}
+              locked={locked}
+              onToggleStop={toggleStop}
+              onClose={() => closeStops(stairwell.stops, stairwell.name)}
+              onReopen={() => reopenStops(
+                stairwell.stops.filter((stop) => closures[stop.id]),
+                stairwell.name,
+              )}
+            />
+          ))}
 
-        </div>
+          {campusDoors.length > 0 && (
+            <>
+              <h3>Doors</h3>
+              <p className="map-panel-note">
+                Close a locked door, and routes won&apos;t go through it. Places with
+                no other way in can&apos;t be routed to until it reopens.
+              </p>
+
+              {campusDoors.map((door) => (
+                <DoorItem
+                  key={door.id}
+                  door={door}
+                  closure={closures[door.id]}
+                  locked={locked}
+                  onToggle={() => toggleStop(door)}
+                />
+              ))}
+            </>
+          )}
+
+          <div className="map-check">
+            <h3>Mapping Check</h3>
+            {unconnectedPoints.length === 0 ? (
+              <p className="map-check-ok">
+                All {campusGraph.nodes.length} points are connected, so every place
+                can be routed to.
+              </p>
+            ) : (
+              <>
+                <p className="map-check-problem">
+                  {unconnectedPoints.length} point(s) are not connected, so no route
+                  can reach them. Link them in the map editor:
+                </p>
+                <ul>
+                  {unconnectedPoints.map((point) => (
+                    <li key={point.id}>{point.floor}F · {point.name}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        </aside>
 
       </div>
 
@@ -2180,32 +2371,188 @@ function MapPage() {
 }
 
 /* ============================================================
-   LOCATION ITEM
+   FLOOR PLAN VIEW
 ============================================================ */
 
-function LocationItem({
-  name,
-  type,
-}) {
-  return (
-    <div className="location-item">
+// The floor's plan image with its mapped points and links drawn on top. The
+// SVG uses the plan's pixels as units, so every point lands where it was mapped.
+function FloorPlanView({ floor, closures, locked, onToggleStop }) {
+  const nodes = campusGraph.nodes.filter((node) => node.floor === floor.floor);
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const links = campusGraph.edges.filter(
+    (edge) => nodesById.has(edge.from) && nodesById.has(edge.to),
+  );
 
+  function onStopKey(event, stop) {
+    if (!locked && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      onToggleStop(stop);
+    }
+  }
+
+  return (
+    <div className="floor-plan">
+      <img
+        src={floorPlanImages[floor.floor]}
+        alt={`${floor.building} ${floor.floor}F floor plan`}
+      />
+
+      <svg viewBox={`0 0 ${floor.image_width} ${floor.image_height}`}>
+        {links.map((edge) => {
+          const a = nodesById.get(edge.from);
+          const b = nodesById.get(edge.to);
+
+          return (
+            <line
+              key={`${edge.from}-${edge.to}`}
+              className="floor-plan-link"
+              x1={a.x}
+              y1={a.y}
+              x2={b.x}
+              y2={b.y}
+            />
+          );
+        })}
+
+        {nodes.filter((node) => !isStop(node) && !isDoor(node)).map((node) => (
+          <circle
+            key={node.id}
+            className={`floor-plan-point ${node.kind === 'hall' ? 'hall' : 'place'}`}
+            cx={node.x}
+            cy={node.y}
+            r={node.kind === 'hall' ? 4 : 7}
+          >
+            <title>{node.kind === 'hall' ? `Corridor point ${node.name}` : node.name}</title>
+          </circle>
+        ))}
+
+        {nodes.filter((node) => isStop(node) || isDoor(node)).map((stop) => {
+          const closed = Boolean(closures[stop.id]);
+          let letter = 'S';
+          if (stop.kind === 'elevator') {
+            letter = 'E';
+          } else if (isDoor(stop)) {
+            letter = 'D';
+          }
+
+          return (
+            <g
+              key={stop.id}
+              className={`floor-plan-stop ${closed ? 'closed' : ''} ${locked ? 'locked' : ''}`}
+              role="button"
+              tabIndex={locked ? -1 : 0}
+              aria-label={`${stop.name}, ${closed ? 'closed' : 'open'}`}
+              onClick={() => !locked && onToggleStop(stop)}
+              onKeyDown={(event) => onStopKey(event, stop)}
+            >
+              <title>
+                {`${stop.name}: ${closed ? 'closed, click to reopen' : 'open, click to close'}`}
+              </title>
+              <circle cx={stop.x} cy={stop.y} r={14} />
+              <text x={stop.x} y={stop.y} dy="0.35em">
+                {letter}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+/* ============================================================
+   STAIRWELL ITEM
+============================================================ */
+
+function StairwellItem({
+  stairwell,
+  closures,
+  locked,
+  onToggleStop,
+  onClose,
+  onReopen,
+}) {
+  const closedStops = stairwell.stops.filter((stop) => closures[stop.id]);
+  const reason = closedStops.map((stop) => closures[stop.id].reason).find(Boolean);
+
+  let status = 'Open on every floor';
+  if (closedStops.length === stairwell.stops.length) {
+    status = 'Closed on every floor';
+  } else if (closedStops.length > 0) {
+    status = `Closed on ${closedStops.map((stop) => `${stop.floor}F`).join(', ')}`;
+  }
+
+  return (
+    <div className={`stairwell-item ${closedStops.length > 0 ? 'has-closed' : ''}`}>
       <div className="location-icon">
-        ⌖
+        {stairwell.kind === 'elevator' ? 'E' : 'S'}
       </div>
 
       <div className="location-info">
+        <strong>{stairwell.name}</strong>
+        <span>{reason ? `${status} · ${reason}` : status}</span>
 
-        <strong>{name}</strong>
+        <div className="stop-chips">
+          {stairwell.stops.map((stop) => {
+            const closed = Boolean(closures[stop.id]);
 
-        <span>{type}</span>
-
+            return (
+              <button
+                key={stop.id}
+                type="button"
+                className={`stop-chip ${closed ? 'closed' : ''}`}
+                disabled={locked}
+                title={`${stop.name}: ${closed ? 'closed, click to reopen' : 'open, click to close'}`}
+                onClick={() => onToggleStop(stop)}
+              >
+                {stop.floor}F
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <button className="small-button">
-        Edit
-      </button>
+      {closedStops.length > 0 ? (
+        <button type="button" className="small-button" disabled={locked} onClick={onReopen}>
+          Reopen
+        </button>
+      ) : (
+        <button type="button" className="small-button danger" disabled={locked} onClick={onClose}>
+          Close
+        </button>
+      )}
+    </div>
+  );
+}
 
+/* ============================================================
+   DOOR ITEM
+============================================================ */
+
+function DoorItem({ door, closure, locked, onToggle }) {
+  let status = 'Open';
+  if (closure) {
+    status = closure.reason ? `Closed · ${closure.reason}` : 'Closed';
+  }
+
+  return (
+    <div className={`stairwell-item ${closure ? 'has-closed' : ''}`}>
+      <div className="location-icon">D</div>
+
+      <div className="location-info">
+        <strong>{door.floor}F · {door.name}</strong>
+        <span>{status}</span>
+      </div>
+
+      {closure ? (
+        <button type="button" className="small-button" disabled={locked} onClick={onToggle}>
+          Reopen
+        </button>
+      ) : (
+        <button type="button" className="small-button danger" disabled={locked} onClick={onToggle}>
+          Close
+        </button>
+      )}
     </div>
   );
 }
