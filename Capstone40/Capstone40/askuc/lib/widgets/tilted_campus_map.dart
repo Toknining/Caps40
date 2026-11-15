@@ -125,8 +125,10 @@ class CampusGraph {
   ///
   /// The stairs and elevator links between floors are the anchors: each
   /// floor gets the scale and shift that best lays its stairs over the same
-  /// stairs on a floor already lined up. The floor with the most stairs links
-  /// stays as it is; the nodes and [plans] of the others move onto it.
+  /// stairs on a floor already lined up. The floor drawn at the middle size
+  /// stays as it is, so one plan drawn much bigger or smaller than the rest
+  /// doesn't resize the whole map; the nodes and [plans] of the others move
+  /// onto it.
   ({CampusGraph graph, List<FloorPlan> plans}) alignFloors(
     List<FloorPlan> plans,
   ) {
@@ -143,7 +145,8 @@ class CampusGraph {
     if (stairs.isEmpty) return (graph: this, plans: plans);
 
     final floors = linksOn.keys.toList()..sort();
-    // The floor with the most stairs links (the lowest on a tie) stays put.
+    // Fitting starts from the floor with the most stairs links (the lowest
+    // on a tie).
     final anchor = floors.reduce(
       (best, f) => linksOn[f]! > linksOn[best]! ? f : best,
     );
@@ -170,6 +173,19 @@ class CampusGraph {
         grew = true;
       }
     }
+
+    // Then the whole map moves so the floor drawn at the middle size keeps
+    // its own pixels (the lower floor when two share the middle).
+    final bySize = fits.keys.toList()
+      ..sort((a, b) => fits[a]!.$1.compareTo(fits[b]!.$1));
+    final keep = math.min(
+      bySize[(bySize.length - 1) ~/ 2],
+      bySize[bySize.length ~/ 2],
+    );
+    final (keepScale, keepOffset) = fits[keep]!;
+    fits.updateAll(
+      (_, fit) => (fit.$1 / keepScale, (fit.$2 - keepOffset) / keepScale),
+    );
 
     MapNode move(MapNode n) {
       if (!fits.containsKey(n.floor)) return n;

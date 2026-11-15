@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import campusGraph from '@askuc-assets/campus_graph.json';
+import floor3Plan from '@askuc-assets/floorplans/Main_3_Floor_transparent.png';
 import floor4Plan from '@askuc-assets/floorplans/Main_4ft_Floor_transparent.png';
 import floor5Plan from '@askuc-assets/floorplans/Main_5ft_Floor_CSS.png';
 import floor6Plan from '@askuc-assets/floorplans/Main_6F_Floor.png';
@@ -2132,6 +2133,7 @@ function AnnouncementsPage() {
 
 // The floor plans the mobile app draws its map on, by floor.
 const floorPlanImages = {
+  3: floor3Plan,
   4: floor4Plan,
   5: floor5Plan,
   6: floor6Plan,

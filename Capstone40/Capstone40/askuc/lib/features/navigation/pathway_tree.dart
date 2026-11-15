@@ -249,15 +249,28 @@ class FloorPathways {
     floorChangeCost: _floorCost,
   );
 
-  /// The closed stops and doors the walk from [fromId] to [toId] would pass
-  /// if they were open, in walking order. Empty if nothing closed is in the
-  /// way, e.g. when the two places were never connected.
+  /// The closed stops and doors in the way from [fromId] to [toId]: those the
+  /// walk would pass if everything were open, in walking order, then those
+  /// on the next walk if only they were closed, and so on until no way is
+  /// left, e.g. both a place's doors. Empty if nothing closed is in the way,
+  /// e.g. when the two places were never connected.
   List<String> closedOnTheWay(String fromId, String toId) {
     if (_closed.isEmpty) return const [];
-    return [
-      for (final id in _allOpen.route(fromId, toId))
-        if (_closed.contains(id)) id,
-    ];
+    final inTheWay = <String>[];
+    for (var pathways = _allOpen; ;) {
+      final more = [
+        for (final id in pathways.route(fromId, toId))
+          if (_closed.contains(id) && !inTheWay.contains(id)) id,
+      ];
+      if (more.isEmpty) return inTheWay;
+      inTheWay.addAll(more);
+      pathways = FloorPathways.build(
+        _nodes.values,
+        _links,
+        floorChangeCost: _floorCost,
+        closed: inTheWay.toSet(),
+      );
+    }
   }
 
   /// The stairs and elevator stops on each floor.

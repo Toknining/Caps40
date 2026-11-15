@@ -243,7 +243,7 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
 
   String _name(String id) => widget.graph.byId(id)?.name ?? id;
 
-  /// e.g. "Door Library" or "5F Stairs 1 and 6F Stairs 1".
+  /// e.g. "4F Library Door Entrance" or "5F Stairs 1 and 6F Stairs 1".
   String _names(List<String> ids) {
     final names = [for (final id in ids) _name(id)];
     return names.length == 1

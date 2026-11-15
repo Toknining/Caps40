@@ -208,10 +208,8 @@ void main() {
       expect(shown, isEmpty); // a redone pathway isn't a new search
     });
 
-    testWidgets('a closed door says why a place is out of reach', (
-      tester,
-    ) async {
-      final door = named('Door Library');
+    testWidgets('a closed door on the way is walked around', (tester) async {
+      final door = named('4F Library Door Entrance');
       await pumpScreen(
         tester,
         closed: {door.id},
@@ -220,12 +218,36 @@ void main() {
       await choose(tester, 'Select starting point', '422', 'Room 422');
       await choose(tester, 'Select destination', 'main lib', 'Main Library');
       await tester.tap(find.text('GENERATE ROUTE'));
+      await tester.pumpAndSettle();
+
+      // Down to the library's 3F entrance and up its own stairs instead.
+      final route = mapIn(tester).routeIds;
+      expect(route, isNotEmpty);
+      expect(route, isNot(contains(door.id)));
+      expect(find.textContaining('to 3F'), findsOneWidget);
+    });
+
+    testWidgets('closed doors say why a place is out of reach', (tester) async {
+      final door = named('4F Library Door Entrance');
+      final door3F = named('3F Library Door Entrance');
+      await pumpScreen(
+        tester,
+        closed: {door.id, door3F.id},
+        reasons: {
+          door.id: "Use the library's 3F entrance",
+          door3F.id: 'The library is closed today',
+        },
+      );
+      await choose(tester, 'Select starting point', '422', 'Room 422');
+      await choose(tester, 'Select destination', 'main lib', 'Main Library');
+      await tester.tap(find.text('GENERATE ROUTE'));
       await tester.pump();
 
       expect(
         find.text(
-          "No open pathway right now: Door Library is closed. Use the "
-          "library's 3F entrance.",
+          'No open pathway right now: 4F Library Door Entrance and 3F Library Door '
+          "Entrance are closed. Use the library's 3F entrance. The library "
+          'is closed today.',
         ),
         findsOneWidget,
       );
@@ -235,7 +257,7 @@ void main() {
     testWidgets('closed places are listed but cannot be picked', (
       tester,
     ) async {
-      final door = named('Door Library');
+      final door = named('4F Library Door Entrance');
       await pumpScreen(
         tester,
         closed: {door.id},
@@ -260,17 +282,17 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.tap(find.text('Door Library'));
+      await tester.tap(find.text('4F Library Door Entrance'));
       await tester.pumpAndSettle();
       // Nothing was picked: the list is still open, with no destination.
-      expect(find.text('Door Library'), findsOneWidget);
+      expect(find.text('4F Library Door Entrance'), findsOneWidget);
       expect(mapIn(tester).destinationId, isNull);
     });
 
     testWidgets('tapping a closed place on the map says why instead', (
       tester,
     ) async {
-      final door = named('Door Library');
+      final door = named('4F Library Door Entrance');
       await pumpScreen(
         tester,
         closed: {door.id},
@@ -285,7 +307,9 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text("Door Library is closed. Use the library's 3F entrance."),
+        find.text(
+          "4F Library Door Entrance is closed. Use the library's 3F entrance.",
+        ),
         findsOneWidget,
       );
       expect(find.text('Set as starting point'), findsNothing);

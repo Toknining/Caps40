@@ -7,6 +7,12 @@ import 'package:askuc/widgets/tilted_campus_map.dart';
 
 const _plans = [
   FloorPlan(
+    floor: 3,
+    asset: 'assets/floorplans/Main_3_Floor_transparent.png',
+    width: 1184,
+    height: 896,
+  ),
+  FloorPlan(
     floor: 4,
     asset: 'assets/floorplans/Main_4ft_Floor_transparent.png',
     width: 2560,
@@ -239,9 +245,11 @@ void main() {
     }
 
     expect(apart, isEmpty);
-    final five = plans.firstWhere((p) => p.floor == 5);
-    expect((five.scale, five.offset), (1, Offset.zero)); // 5F stays put
-    // 4F's plan image was drawn about 2.3 times as big as 5F's.
-    expect(plans.first.scale, closeTo(0.44, 0.01));
+    FloorPlan plan(int floor) => plans.firstWhere((p) => p.floor == floor);
+    // 5F, drawn at the middle size, stays put, though 4F has more stairs.
+    expect((plan(5).scale, plan(5).offset), (1, Offset.zero));
+    // 4F's plan image was drawn about 2.3 times as big as the others.
+    expect(plan(4).scale, closeTo(0.44, 0.01));
+    expect(plan(3).scale, closeTo(1, 0.05));
   });
 }

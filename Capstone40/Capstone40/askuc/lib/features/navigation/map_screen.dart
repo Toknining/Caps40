@@ -13,6 +13,12 @@ import 'pathway_tree.dart';
 /// [CampusGraph.alignFloors]).
 const _plans = [
   FloorPlan(
+    floor: 3,
+    asset: 'assets/floorplans/Main_3_Floor_transparent.png',
+    width: 1184,
+    height: 896,
+  ),
+  FloorPlan(
     floor: 4,
     asset: 'assets/floorplans/Main_4ft_Floor_transparent.png',
     width: 2560,

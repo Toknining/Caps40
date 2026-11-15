@@ -229,8 +229,9 @@ void main() {
         final pathways = twoDoors(const {'front', 'side'});
 
         expect(pathways.route('hall', 'room'), isEmpty);
-        // With everything open the walk would go through the front door.
-        expect(pathways.closedOnTheWay('hall', 'room'), ['front']);
+        // With everything open the walk would go through the front door, and
+        // without it, through the side door.
+        expect(pathways.closedOnTheWay('hall', 'room'), ['front', 'side']);
       });
     });
   });
@@ -323,22 +324,33 @@ void main() {
       expect(ridden(route).intersection(closed), isEmpty);
     });
 
-    test('closing Door Library keeps routes out of the 4F library', () {
-      final (_, nodes) = _loadCampus();
-      String idOf(String name) =>
-          nodes.values.firstWhere((node) => node['name'] == name)['id']
-              as String;
-      final door = idOf('Door Library');
-      final (pathways, _) = _loadCampus(closed: {door});
+    test(
+      'with 4F Library Door Entrance closed, the library is entered from 3F',
+      () {
+        final (_, nodes) = _loadCampus();
+        String idOf(String name) =>
+            nodes.values.firstWhere((node) => node['name'] == name)['id']
+                as String;
+        final door = idOf('4F Library Door Entrance');
+        final room = idOf('Room 422'), library = idOf('Main Library');
 
-      // Until 3F is mapped, the 4F door is the library's only way in.
-      expect(pathways.route(idOf('Room 422'), idOf('Main Library')), isEmpty);
-      expect(pathways.closedOnTheWay(idOf('Room 422'), idOf('Main Library')), [
-        door,
-      ]);
-      // Places outside the library are still reachable.
-      expect(pathways.route(idOf('Room 422'), idOf('Room 423')), isNotEmpty);
-    });
+        // The 4F door is locked in reality, so the walk goes down to 3F, in at
+        // the library's 3F door and up the library's own stairs.
+        final (pathways, _) = _loadCampus(closed: {door});
+        final route = pathways.route(room, library);
+        expect(route, isNotEmpty);
+        expect(route, isNot(contains(door)));
+        expect([for (final id in route) nodes[id]!['floor']], contains(3));
+
+        // With the 3F door closed as well there's no way in; both are named.
+        final door3F = idOf('3F Library Door Entrance');
+        final (shut, _) = _loadCampus(closed: {door, door3F});
+        expect(shut.route(room, library), isEmpty);
+        expect(shut.closedOnTheWay(room, library), [door, door3F]);
+        // Places outside the library are still reachable.
+        expect(shut.route(room, idOf('Room 423')), isNotEmpty);
+      },
+    );
   });
 }
 
