@@ -521,7 +521,7 @@ class _FloorHint extends StatelessWidget {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  'Take $via ${up ? 'up' : 'down'} to ${change.to.floor}F',
+                  'Take $via ${up ? 'up' : 'down'} to ${floorLabel(change.to.floor)}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -592,7 +592,7 @@ class _FloorPicker extends StatelessWidget {
           pill('All', value == null, () => onChanged(null)),
           for (final f in floors.reversed) ...[
             const SizedBox(height: 3),
-            pill('${f}F', value == f, () => onChanged(f)),
+            pill(floorLabel(f), value == f, () => onChanged(f)),
           ],
         ],
       ),
@@ -930,11 +930,11 @@ class _PlaceActions extends StatelessWidget {
 
 /* ----------------------------------------------------------- lists */
 
-/// e.g. "Main Building · Floor 5", plus "· Closed" and the admin's [reason]
-/// for something closed.
+/// e.g. "Main Building · Floor 5" or "Main Building · Mezzanine", plus
+/// "· Closed" and the admin's [reason] for something closed.
 String _whereIs(MapNode n, {bool closed = false, String reason = ''}) => [
   n.building,
-  'Floor ${n.floor}',
+  n.floor == 1 ? 'Mezzanine' : 'Floor ${n.floor}',
   if (closed) 'Closed',
   if (closed && reason.trim().isNotEmpty) reason.trim(),
 ].join(' · ');

@@ -242,6 +242,10 @@ class CampusGraph {
   return (scale, to - from * scale);
 }
 
+/// What the map calls [floor], e.g. "5F". Floor 1 in the campus graph is the
+/// Main Building's mezzanine, so it is "MZ".
+String floorLabel(int floor) => floor == 1 ? 'MZ' : '${floor}F';
+
 /// A change of floor along a route: leave by the stairs or lift at [from] and
 /// carry on walking from [to]. Floors the route only passes through inside
 /// the stairwell are skipped.
@@ -1139,7 +1143,7 @@ class _OverlayPainter extends CustomPainter {
       for (final change in floorChanges(route)) {
         if (change.from.floor != focusedFloor) continue;
         final p = at[change.from.id]!;
-        final floor = '${change.to.floor}F';
+        final floor = floorLabel(change.to.floor);
         final box = Rect.fromLTWH(
           p.dx + 8,
           p.dy - 28,
@@ -1204,7 +1208,7 @@ class _OverlayPainter extends CustomPainter {
 
     // The overview names each floor beside its building.
     for (final MapEntry(key: floor, value: anchor) in floorTags.entries) {
-      final text = _badgeText('${floor}F', _routeBlue);
+      final text = _badgeText(floorLabel(floor), _routeBlue);
       final box = Rect.fromLTWH(
         // Beside the building, but never off the map's left edge.
         math.max(8, anchor.dx - text.width - 16),

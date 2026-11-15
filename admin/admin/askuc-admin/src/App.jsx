@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import campusGraph from '@askuc-assets/campus_graph.json';
+import mezzaninePlan from '@askuc-assets/floorplans/Mezzanine_Floor_transparent.png';
+import floor2Plan from '@askuc-assets/floorplans/Main_2_Floor_transparent.png';
 import floor3Plan from '@askuc-assets/floorplans/Main_3_Floor_transparent.png';
 import floor4Plan from '@askuc-assets/floorplans/Main_4ft_Floor_transparent.png';
 import floor5Plan from '@askuc-assets/floorplans/Main_5ft_Floor_CSS.png';
@@ -2131,8 +2133,13 @@ function AnnouncementsPage() {
    MAP PAGE
 ============================================================ */
 
+// What the map calls a floor, e.g. "5F". Floor 1 is the mezzanine, "MZ".
+const floorLabel = (floor) => (Number(floor) === 1 ? 'MZ' : `${floor}F`);
+
 // The floor plans the mobile app draws its map on, by floor.
 const floorPlanImages = {
+  1: mezzaninePlan,
+  2: floor2Plan,
   3: floor3Plan,
   4: floor4Plan,
   5: floor5Plan,
@@ -2267,7 +2274,7 @@ function MapPage() {
         <section className="map-preview">
           <div className="map-preview-header">
             <div>
-              <h3>{shownFloor.building} · {floor}F</h3>
+              <h3>{shownFloor.building} · {floorLabel(floor)}</h3>
               <p>Click an S (stairs), E (elevator) or D (door) to close or reopen it.</p>
             </div>
 
@@ -2281,7 +2288,7 @@ function MapPage() {
                   className={item.floor === floor ? 'active' : ''}
                   onClick={() => setFloor(item.floor)}
                 >
-                  {item.floor}F
+                  {floorLabel(item.floor)}
                 </button>
               ))}
             </div>
@@ -2358,7 +2365,7 @@ function MapPage() {
                 </p>
                 <ul>
                   {unconnectedPoints.map((point) => (
-                    <li key={point.id}>{point.floor}F · {point.name}</li>
+                    <li key={point.id}>{floorLabel(point.floor)} · {point.name}</li>
                   ))}
                 </ul>
               </>
@@ -2396,7 +2403,7 @@ function FloorPlanView({ floor, closures, locked, onToggleStop }) {
     <div className="floor-plan">
       <img
         src={floorPlanImages[floor.floor]}
-        alt={`${floor.building} ${floor.floor}F floor plan`}
+        alt={`${floor.building} ${floorLabel(floor.floor)} floor plan`}
       />
 
       <svg viewBox={`0 0 ${floor.image_width} ${floor.image_height}`}>
@@ -2481,7 +2488,7 @@ function StairwellItem({
   if (closedStops.length === stairwell.stops.length) {
     status = 'Closed on every floor';
   } else if (closedStops.length > 0) {
-    status = `Closed on ${closedStops.map((stop) => `${stop.floor}F`).join(', ')}`;
+    status = `Closed on ${closedStops.map((stop) => floorLabel(stop.floor)).join(', ')}`;
   }
 
   return (
@@ -2507,7 +2514,7 @@ function StairwellItem({
                 title={`${stop.name}: ${closed ? 'closed, click to reopen' : 'open, click to close'}`}
                 onClick={() => onToggleStop(stop)}
               >
-                {stop.floor}F
+                {floorLabel(stop.floor)}
               </button>
             );
           })}
@@ -2542,7 +2549,7 @@ function DoorItem({ door, closure, locked, onToggle }) {
       <div className="location-icon">D</div>
 
       <div className="location-info">
-        <strong>{door.floor}F · {door.name}</strong>
+        <strong>{floorLabel(door.floor)} · {door.name}</strong>
         <span>{status}</span>
       </div>
 

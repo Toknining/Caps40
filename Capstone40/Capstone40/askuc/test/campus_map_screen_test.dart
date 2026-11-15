@@ -229,13 +229,15 @@ void main() {
 
     testWidgets('closed doors say why a place is out of reach', (tester) async {
       final door = named('4F Library Door Entrance');
-      final door3F = named('3F Library Door Entrance');
+      final stairs1 = named('4F Library Stairs 1');
+      final stairs2 = named('4F Library Stairs 2');
       await pumpScreen(
         tester,
-        closed: {door.id, door3F.id},
+        closed: {door.id, stairs1.id, stairs2.id},
         reasons: {
           door.id: "Use the library's 3F entrance",
-          door3F.id: 'The library is closed today',
+          stairs1.id: 'The library is closed today',
+          stairs2.id: 'The library is closed today',
         },
       );
       await choose(tester, 'Select starting point', '422', 'Room 422');
@@ -245,9 +247,9 @@ void main() {
 
       expect(
         find.text(
-          'No open pathway right now: 4F Library Door Entrance and 3F Library Door '
-          "Entrance are closed. Use the library's 3F entrance. The library "
-          'is closed today.',
+          'No open pathway right now: 4F Library Door Entrance, 4F Library '
+          'Stairs 1 and 4F Library Stairs 2 are closed. Use the '
+          "library's 3F entrance. The library is closed today.",
         ),
         findsOneWidget,
       );
