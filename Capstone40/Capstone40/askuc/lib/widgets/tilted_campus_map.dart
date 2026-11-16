@@ -242,9 +242,21 @@ class CampusGraph {
   return (scale, to - from * scale);
 }
 
-/// What the map calls [floor], e.g. "5F". Floor 1 in the campus graph is the
-/// Main Building's mezzanine, so it is "MZ".
-String floorLabel(int floor) => floor == 1 ? 'MZ' : '${floor}F';
+/// What the map calls [floor], e.g. "5F". In the campus graph the Main
+/// Building's ground floor is floor 0, "1F", and its mezzanine is floor 1,
+/// "MZ".
+String floorLabel(int floor) => switch (floor) {
+  0 => '1F',
+  1 => 'MZ',
+  _ => '${floor}F',
+};
+
+/// [floorLabel] spelled out, e.g. "Floor 5" or "Mezzanine".
+String floorName(int floor) => switch (floor) {
+  0 => 'Floor 1',
+  1 => 'Mezzanine',
+  _ => 'Floor $floor',
+};
 
 /// A change of floor along a route: leave by the stairs or lift at [from] and
 /// carry on walking from [to]. Floors the route only passes through inside
@@ -1030,15 +1042,8 @@ class _OverlayPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
 
-    // corridors
-    final corridor = stroke(const Color(0x55C6D2C8), 3);
-    for (final e in overview ? const <MapEdge>[] : graph.edges) {
-      final a = byId[e.from], b = byId[e.to];
-      if (a == null || b == null) continue;
-      if (!_visible(a) || !_visible(b)) continue;
-      if (a.floor != b.floor) continue;
-      canvas.drawLine(at[a.id]!, at[b.id]!, corridor);
-    }
+    // Corridor points and the links between them aren't drawn: the floor
+    // plan already shows the corridors, and a route draws its own line.
 
     // route: every halo first, then the line, so joints stay clean
     final route = routeIds.map((id) => byId[id]).whereType<MapNode>().toList();
@@ -1076,24 +1081,18 @@ class _OverlayPainter extends CustomPainter {
       if (overview && !lit) continue;
 
       if (n.isTransit) {
+        if (n.kind == 'hall') continue; // corridor points stay hidden
         if (lit) {
-          // Corridor points disappear into the line; stairs and lifts stay.
-          if (n.kind != 'hall') {
-            canvas.drawCircle(p, 7, Paint()..color = Colors.white);
-            canvas.drawCircle(p, 4.5, Paint()..color = _routeBlue);
-          }
+          // Stairs and lifts on the route show in its blue.
+          canvas.drawCircle(p, 7, Paint()..color = Colors.white);
+          canvas.drawCircle(p, 4.5, Paint()..color = _routeBlue);
           continue;
         }
         if (closedIds.contains(n.id)) {
           _drawClosed(canvas, p); // closed stairs or lift
           continue;
         }
-        if (n.kind == 'hall' && zoom < 0.6) continue;
-        canvas.drawCircle(
-          p,
-          n.kind == 'hall' ? 3 : 4.5,
-          Paint()..color = const Color(0x889AA79C),
-        );
+        canvas.drawCircle(p, 4.5, Paint()..color = const Color(0x889AA79C));
         continue;
       }
 

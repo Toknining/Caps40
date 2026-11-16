@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import campusGraph from '@askuc-assets/campus_graph.json';
+import floor1Plan from '@askuc-assets/floorplans/Main_1_Floor_transparent.png';
 import mezzaninePlan from '@askuc-assets/floorplans/Mezzanine_Floor_transparent.png';
 import floor2Plan from '@askuc-assets/floorplans/Main_2_Floor_transparent.png';
 import floor3Plan from '@askuc-assets/floorplans/Main_3_Floor_transparent.png';
@@ -2133,11 +2134,13 @@ function AnnouncementsPage() {
    MAP PAGE
 ============================================================ */
 
-// What the map calls a floor, e.g. "5F". Floor 1 is the mezzanine, "MZ".
-const floorLabel = (floor) => (Number(floor) === 1 ? 'MZ' : `${floor}F`);
+// What the map calls a floor, e.g. "5F". In campus_graph.json the ground floor
+// is floor 0, "1F", and the mezzanine is floor 1, "MZ".
+const floorLabel = (floor) => ({ 0: '1F', 1: 'MZ' })[Number(floor)] ?? `${floor}F`;
 
 // The floor plans the mobile app draws its map on, by floor.
 const floorPlanImages = {
+  0: floor1Plan,
   1: mezzaninePlan,
   2: floor2Plan,
   3: floor3Plan,

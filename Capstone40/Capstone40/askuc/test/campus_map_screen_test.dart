@@ -278,10 +278,7 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text(
-          "${door.building} · Floor 4 · Closed · Use the library's 3F "
-          'entrance',
-        ),
+        find.text("Closed · Use the library's 3F entrance"),
         findsOneWidget,
       );
       await tester.tap(find.text('4F Library Door Entrance'));
@@ -289,6 +286,69 @@ void main() {
       // Nothing was picked: the list is still open, with no destination.
       expect(find.text('4F Library Door Entrance'), findsOneWidget);
       expect(mapIn(tester).destinationId, isNull);
+    });
+
+    testWidgets('places are listed floor by floor, top floor first', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      await tester.tap(
+        find
+            .ancestor(
+              of: find.text('Select starting point'),
+              matching: find.byType(InkWell),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+
+      // At first only the floors show, 7F at the top.
+      expect(
+        tester.getTopLeft(find.text('Floor 7')).dy,
+        lessThan(tester.getTopLeft(find.text('Floor 6')).dy),
+      );
+      expect(find.text('Physics Lab 734'), findsNothing);
+
+      // Opening 7F lists its places under headings.
+      await tester.tap(find.text('Floor 7'));
+      await tester.pumpAndSettle();
+      expect(find.text('CLASSROOMS'), findsOneWidget);
+      final lab = find.text('Physics Lab 734');
+      await tester.scrollUntilVisible(
+        lab,
+        100,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(lab);
+      await tester.pumpAndSettle();
+
+      expect(mapIn(tester).originId, named('Physics Lab 734').id);
+    });
+
+    testWidgets('picking the parking entrance says what it is instead', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      await choose(
+        tester,
+        'Select starting point',
+        'parking',
+        'GATE 1 (PARKING ENTRANCE)',
+      );
+
+      expect(
+        find.text('GATE 1 (PARKING ENTRANCE) is a parking entrance.'),
+        findsOneWidget,
+      );
+      // Nothing was picked.
+      expect(find.text('Select starting point'), findsOneWidget);
+      expect(mapIn(tester).originId, isNull);
     });
 
     testWidgets('tapping a closed place on the map says why instead', (

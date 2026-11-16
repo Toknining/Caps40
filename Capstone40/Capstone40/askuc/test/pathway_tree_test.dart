@@ -239,13 +239,15 @@ void main() {
   group('campus_graph.json', () {
     test('every node is connected', () {
       final (pathways, nodes) = _loadCampus();
+      // The parking entrance is for cars, so no walkway leads to it.
+      const unlinked = {'GATE 1 (PARKING ENTRANCE)'};
       final first = nodes.keys.first;
       final unreachable = [
         for (final id in nodes.keys)
           if (pathways.route(first, id).isEmpty) nodes[id]!['name'],
       ];
 
-      expect(unreachable, isEmpty);
+      expect(unreachable, unorderedEquals(unlinked));
     });
 
     test('Dean Office to Cisco Lab 544 walks the corridor', () {
@@ -290,12 +292,12 @@ void main() {
           // 7F's two halves only meet on 6F, walls split 2F's west and east
           // wings, which meet on the Mezzanine (floor 1) or 3F, and the
           // Mezzanine's Grade School block is a separate wing, reached
-          // through 2F's east wing or, when shorter, 3F. Trips between the
-          // parts of these floors leave the floor.
+          // through the ground floor (floor 0), 2F's east wing or 3F. Trips
+          // between the parts of these floors leave the floor.
           bool within(int a, int b) => floors.every((f) => f >= a && f <= b);
           final split7F = low == 7 && high == 7 && within(6, 7);
           final split2F = low == 2 && high == 2 && within(1, 3);
-          final splitMZ = low == 1 && high == 1 && within(1, 3);
+          final splitMZ = low == 1 && high == 1 && within(0, 3);
           final split = split7F || split2F || splitMZ;
           if (floors.any((f) => f < low || f > high) && !split) {
             wandering.add('${a['name']} -> ${b['name']}: $floors');

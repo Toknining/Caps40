@@ -7,6 +7,12 @@ import 'package:askuc/widgets/tilted_campus_map.dart';
 
 const _plans = [
   FloorPlan(
+    floor: 0,
+    asset: 'assets/floorplans/Main_1_Floor_transparent.png',
+    width: 1152,
+    height: 896,
+  ),
+  FloorPlan(
     floor: 1,
     asset: 'assets/floorplans/Mezzanine_Floor_transparent.png',
     width: 1216,
@@ -251,9 +257,12 @@ void main() {
       final a = byId[e.from]!, b = byId[e.to]!;
       if (a.floor == b.floor) continue;
       // Each floor's nodes were placed by hand, so the same stairs land a
-      // little apart; a floor out of line would be hundreds of px off.
+      // little apart; a floor out of line would be hundreds of px off. The
+      // ground floor (floor 0) is drawn skewed a few degrees against the
+      // Mezzanine above it, so its stairs land up to about 75 px off.
       final d = (Offset(a.x, a.y) - Offset(b.x, b.y)).distance;
-      if (d > 50) apart.add('${a.name} -> ${b.name}: ${d.round()} px');
+      final allowed = math.min(a.floor, b.floor) == 0 ? 80 : 50;
+      if (d > allowed) apart.add('${a.name} -> ${b.name}: ${d.round()} px');
     }
 
     expect(apart, isEmpty);
@@ -267,6 +276,6 @@ void main() {
       expect(plan(floor).scale, closeTo(1, 0.1), reason: '${floor}F');
     }
     // 4F's plan image was drawn about 2.3 times as big as the others.
-    expect(plan(4).scale, closeTo(0.44, 0.01));
+    expect(plan(4).scale / plan(5).scale, closeTo(0.44, 0.01));
   });
 }

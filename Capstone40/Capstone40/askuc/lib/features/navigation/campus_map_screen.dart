@@ -146,7 +146,32 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
       ),
     );
     if (place == null || !mounted) return;
+    final whyNot = _whyNot(place);
+    if (whyNot != null) {
+      _say(whyNot);
+      return;
+    }
     _choose(end, place);
+  }
+
+  /// Every node with at least one link. A place without one, such as GATE 1
+  /// (PARKING ENTRANCE), which is for cars, is on no walkway.
+  late final Set<String> _linked = {
+    for (final e in widget.graph.edges) ...[e.from, e.to],
+  };
+
+  /// Why [place] can't be a starting point or destination, or null if it
+  /// can: it's closed, or no walkway reaches it.
+  String? _whyNot(MapNode place) {
+    if (widget.closedIds.contains(place.id)) {
+      return '${place.name} is closed.${_reasons([place.id])}';
+    }
+    if (!_linked.contains(place.id)) {
+      return place.name.toLowerCase().contains('parking')
+          ? '${place.name} is a parking entrance.'
+          : "${place.name} isn't on a walkway on the map yet.";
+    }
+    return null;
   }
 
   void _choose(_End end, MapNode place) {
@@ -163,10 +188,12 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
   }
 
   /// Tapping a place on the map offers it as the start or the destination.
-  /// Something closed can't be picked; the tap says why instead.
+  /// Something closed or on no walkway can't be picked; the tap says why
+  /// instead.
   Future<void> _onNodeTap(MapNode place) async {
-    if (widget.closedIds.contains(place.id)) {
-      _say('${place.name} is closed.${_reasons([place.id])}');
+    final whyNot = _whyNot(place);
+    if (whyNot != null) {
+      _say(whyNot);
       return;
     }
     final end = await showModalBottomSheet<_End>(
@@ -755,6 +782,9 @@ class _PlaceField extends StatelessWidget {
 
 /* ----------------------------------------------------------- sheets */
 
+/// Picks a starting point or destination: a dropdown for each floor, top
+/// floor first, listing the floor's places by kind. Searching keeps only the
+/// floors with a match, opened.
 class _PlaceSheet extends StatefulWidget {
   final String title;
   final List<MapNode> places;
@@ -791,6 +821,8 @@ class _PlaceSheetState extends State<_PlaceSheet> {
                     n.building.toLowerCase().contains(q),
               )
               .toList();
+    final floors = {for (final n in shown) n.floor}.toList()
+      ..sort((a, b) => b.compareTo(a)); // top floor first
     final screen = MediaQuery.sizeOf(context).height;
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
 
@@ -851,24 +883,28 @@ class _PlaceSheetState extends State<_PlaceSheet> {
                       text: 'Nothing matches that. Try a shorter word.',
                     )
                   : ListView.separated(
+                      // A new list for each search, so its results start
+                      // at the top rather than where the last list was.
+                      key: ValueKey(q),
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      itemCount: shown.length,
+                      itemCount: floors.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, i) {
-                        final n = shown[i];
-                        final closed = widget.closedIds.contains(n.id);
-                        return _Row(
-                          icon: _iconFor(n),
-                          title: n.name,
-                          subtitle: _whereIs(
-                            n,
-                            closed: closed,
-                            reason: widget.closureReasons[n.id] ?? '',
-                          ),
-                          selected: n.id == widget.selected?.id,
-                          onTap: closed
-                              ? null
-                              : () => Navigator.pop(context, n),
+                        final floor = floors[i];
+                        return _FloorGroup(
+                          // Each search starts with its floors opened.
+                          key: ValueKey('$floor/$q'),
+                          floor: floor,
+                          places: [
+                            for (final n in shown)
+                              if (n.floor == floor) n,
+                          ],
+                          searching: q.isNotEmpty,
+                          open: q.isNotEmpty || widget.selected?.floor == floor,
+                          selectedId: widget.selected?.id,
+                          closedIds: widget.closedIds,
+                          closureReasons: widget.closureReasons,
+                          onPick: (n) => Navigator.pop(context, n),
                         );
                       },
                     ),
@@ -878,6 +914,274 @@ class _PlaceSheetState extends State<_PlaceSheet> {
       ),
     );
   }
+}
+
+/// The headings a floor's places are listed under, in this order.
+const _sections = <(String, Set<String>)>[
+  ('Classrooms', {'classroom'}),
+  ('Labs', {'lab'}),
+  ('Offices', {'office'}),
+  ('Facilities', {'facility'}),
+  ('Restrooms', {'restroom'}),
+  ('Entrances', {'entrance'}),
+  ('Stairs and elevators', {'stairs', 'elevator'}),
+];
+
+/// One floor in a place list: a dropdown of the floor's places, under
+/// headings such as Classrooms and Labs.
+class _FloorGroup extends StatelessWidget {
+  final int floor;
+  final List<MapNode> places;
+
+  /// Whether [places] are search matches rather than the whole floor.
+  final bool searching;
+
+  /// Whether the dropdown starts opened.
+  final bool open;
+  final String? selectedId;
+  final Set<String> closedIds;
+  final Map<String, String> closureReasons;
+  final ValueChanged<MapNode> onPick;
+
+  const _FloorGroup({
+    super.key,
+    required this.floor,
+    required this.places,
+    required this.searching,
+    required this.open,
+    required this.selectedId,
+    required this.closedIds,
+    required this.closureReasons,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final count = places.length;
+    final holdsSelected = places.any((n) => n.id == selectedId);
+    bool listed(MapNode n) => _sections.any((s) => s.$2.contains(n.kind));
+    final sections = [
+      for (final (heading, kinds) in _sections)
+        (
+          heading,
+          [
+            for (final n in places)
+              if (kinds.contains(n.kind)) n,
+          ],
+        ),
+      (
+        'Other places',
+        [
+          for (final n in places)
+            if (!listed(n)) n,
+        ],
+      ),
+    ];
+
+    return Material(
+      color: Colors.white,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: holdsSelected ? _Palette.blue : _Palette.border,
+        ),
+      ),
+      child: ExpansionTile(
+        initiallyExpanded: open,
+        // An opened floor slides up to the top of the list, so its places
+        // show even when it was near the bottom.
+        onExpansionChanged: (opened) {
+          if (!opened) return;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+            );
+          });
+        },
+        shape: const Border(),
+        collapsedShape: const Border(),
+        tilePadding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
+        childrenPadding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+        expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+        iconColor: _Palette.blue,
+        collapsedIconColor: _Palette.chevron,
+        leading: Container(
+          width: 38,
+          height: 38,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _Palette.iconBg,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            floorLabel(floor),
+            style: const TextStyle(
+              color: _Palette.blue,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        title: Text(
+          floorName(floor),
+          style: const TextStyle(
+            color: _Palette.title,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          searching
+              ? '$count ${count == 1 ? 'match' : 'matches'}'
+              : '$count ${count == 1 ? 'place' : 'places'}',
+          style: const TextStyle(color: _Palette.muted, fontSize: 11),
+        ),
+        children: [
+          for (final (heading, items) in sections)
+            if (items.isNotEmpty) ...[
+              _SectionLabel(heading),
+              for (final n in items..sort((a, b) => _byName(a.name, b.name)))
+                _PlaceRow(
+                  place: n,
+                  selected: n.id == selectedId,
+                  closed: closedIds.contains(n.id),
+                  reason: closureReasons[n.id] ?? '',
+                  onTap: () => onPick(n),
+                ),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A heading inside a floor's dropdown, e.g. "CLASSROOMS".
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 4),
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(
+          color: _Palette.muted,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
+}
+
+/// A place in a floor's dropdown. A closed one is greyed out with a lock,
+/// says why, and can't be picked.
+class _PlaceRow extends StatelessWidget {
+  final MapNode place;
+  final bool selected;
+  final bool closed;
+
+  /// What the admin wrote about the closure.
+  final String reason;
+  final VoidCallback onTap;
+
+  const _PlaceRow({
+    required this.place,
+    required this.selected,
+    required this.closed,
+    required this.reason,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final why = reason.trim();
+    return InkWell(
+      onTap: closed ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: closed ? _Palette.bg : _Palette.iconBg,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                _iconFor(place),
+                color: closed ? _Palette.hint : _Palette.blue,
+                size: 17,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    place.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      color: closed
+                          ? _Palette.muted
+                          : selected
+                          ? _Palette.blue
+                          : _Palette.title,
+                    ),
+                  ),
+                  if (closed)
+                    Text(
+                      why.isEmpty ? 'Closed' : 'Closed · $why',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _Palette.muted,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(Icons.check_rounded, color: _Palette.blue, size: 20)
+            else if (closed)
+              const Icon(
+                Icons.lock_outline_rounded,
+                color: _Palette.chevron,
+                size: 18,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Orders names the way people count, so "Room 9" comes before "Room 10".
+int _byName(String a, String b) {
+  final chunk = RegExp(r'\d+|\D+');
+  final x = [for (final m in chunk.allMatches(a.toLowerCase())) m[0]!];
+  final y = [for (final m in chunk.allMatches(b.toLowerCase())) m[0]!];
+  for (var i = 0; i < x.length && i < y.length; i++) {
+    final p = int.tryParse(x[i]), q = int.tryParse(y[i]);
+    final c = p != null && q != null ? p.compareTo(q) : x[i].compareTo(y[i]);
+    if (c != 0) return c;
+  }
+  return x.length.compareTo(y.length);
 }
 
 /// What to do with an open place tapped on the map.
@@ -930,14 +1234,8 @@ class _PlaceActions extends StatelessWidget {
 
 /* ----------------------------------------------------------- lists */
 
-/// e.g. "Main Building · Floor 5" or "Main Building · Mezzanine", plus
-/// "· Closed" and the admin's [reason] for something closed.
-String _whereIs(MapNode n, {bool closed = false, String reason = ''}) => [
-  n.building,
-  n.floor == 1 ? 'Mezzanine' : 'Floor ${n.floor}',
-  if (closed) 'Closed',
-  if (closed && reason.trim().isNotEmpty) reason.trim(),
-].join(' · ');
+/// e.g. "Main Building · Floor 5" or "Main Building · Mezzanine".
+String _whereIs(MapNode n) => '${n.building} · ${floorName(n.floor)}';
 
 IconData _iconFor(MapNode n) => switch (n.kind) {
   'lab' => Icons.science_outlined,
@@ -946,29 +1244,25 @@ IconData _iconFor(MapNode n) => switch (n.kind) {
   'restroom' => Icons.wc_rounded,
   'stairs' => Icons.stairs_outlined,
   'elevator' => Icons.elevator_outlined,
+  'entrance' => Icons.door_front_door_outlined,
   _ => Icons.meeting_room_outlined,
 };
 
+/// A choice in the sheet that opens when a place on the map is tapped.
 class _Row extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final bool selected;
-
-  /// null for something that can't be picked, e.g. closed stairs or a
-  /// locked door: the row is greyed out with a lock.
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
   const _Row({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.selected = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onTap != null;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
@@ -979,9 +1273,7 @@ class _Row extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? _Palette.blue : _Palette.border,
-            ),
+            border: Border.all(color: _Palette.border),
           ),
           child: Row(
             children: [
@@ -989,14 +1281,10 @@ class _Row extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: enabled ? _Palette.iconBg : _Palette.bg,
+                  color: _Palette.iconBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
-                  color: enabled ? _Palette.blue : _Palette.hint,
-                  size: 20,
-                ),
+                child: Icon(icon, color: _Palette.blue, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1007,10 +1295,10 @@ class _Row extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: enabled ? _Palette.title : _Palette.muted,
+                        color: _Palette.title,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1026,14 +1314,7 @@ class _Row extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                !enabled
-                    ? Icons.lock_outline_rounded
-                    : selected
-                    ? Icons.check_rounded
-                    : Icons.chevron_right_rounded,
-                color: selected && enabled ? _Palette.blue : _Palette.chevron,
-              ),
+              const Icon(Icons.chevron_right_rounded, color: _Palette.chevron),
             ],
           ),
         ),
